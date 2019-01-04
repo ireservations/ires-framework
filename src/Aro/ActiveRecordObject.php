@@ -131,10 +131,8 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		return new Relationship\ToMany($this, $targetClass, $foreignColumn);
 	}
 
-	/**
-	 * @param self $targetClass
-	 */
 	protected function to_count( $targetClass, $foreignColumn ) {
+		/** @var self $targetClass */
 		$targetTable = call_user_func([$targetClass, '_table']);
 		return (new Relationship\ToOneScalarTable($this, 'count(1)', $targetTable, $foreignColumn))
 			->default(0)

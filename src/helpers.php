@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Aro\AppActiveRecordObject;
 use Framework\Tpl\HtmlString;
 use Framework\Http\Request;
 use Framework\Locale\Multilang;
@@ -29,19 +30,36 @@ function array_set( &$array, $path, $value ) {
 	$container = $value;
 }
 
-function array_get( $array, $path ) {
+function array_get( $source, $path ) {
 	is_array($path) or $path = array_filter(preg_split('#[\.\[\]]+#', $path));
 
-	$value = $array;
+	$value = $source;
 	foreach ( $path as $name ) {
-		if ( !isset($value[$name]) ) {
+		$value = is_object($value) ? ($value->$name ?? null) : ($value[$name] ?? null);
+		if ( $value === null ) {
 			return null;
 		}
-
-		$value = is_object($value) ? $value->$name : $value[$name];
 	}
 
 	return $value;
+}
+
+/**
+ * @param AppActiveRecordObject[] $objects
+ * @return string[]
+ */
+function aro_options( $objects, $label = null, $key = null, $sort = false ) {
+	$options = array();
+	foreach ( $objects AS $object ) {
+		$keyValue = $key ? array_get($object, $key) : $object->getPKValue();
+		$labelValue = $label ? array_get($object, $label) : (string) $object;
+
+		$options[$keyValue] = $labelValue;
+	}
+
+	$sort and natcasesort($options);
+
+	return $options;
 }
 
 function filter_xss( $html ) {
