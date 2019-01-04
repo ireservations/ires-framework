@@ -1,0 +1,21 @@
+{
+    "name": "rdx/framework",
+    "description": "",
+    "require": {
+        "doctrine/annotations": "1.4.*",
+        "smarty/smarty": "^3.1",
+        "symfony/console": "^4.1",
+        "symfony/var-dumper": "^4.0"
+    },
+    "autoload": {
+        "classmap": [
+            "src/db"
+        ],
+        "psr-4": {
+            "Framework\\": "src/"
+        },
+        "files": [
+            "src/helpers.php"
+        ]
+    }
+}

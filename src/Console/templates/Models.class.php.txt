@@ -1,0 +1,10 @@
+/**
+ * __CLASS__
+ *
+__COLUMN_PROPERTIES__
+ *
+__GETTER_PROPERTIES__
+ *
+__RELATIONSHIP_PROPERTIES__
+ */
+class __CLASS__ {}
