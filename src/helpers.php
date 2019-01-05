@@ -15,6 +15,13 @@ function trans( $key, array $options = [] ) {
 	return $g_language->translate($key, $options);
 }
 
+function array_first( $arr ) {
+	if ( count($arr) == 0 ) return null;
+
+	reset($arr);
+	return $arr[key($arr)];
+}
+
 function array_set( &$array, $path, $value ) {
 	is_array($path) or $path = array_filter(preg_split('#[\.\[\]]+#', $path));
 
@@ -60,6 +67,22 @@ function aro_options( $objects, $label = null, $key = null, $sort = false ) {
 	$sort and natcasesort($options);
 
 	return $options;
+}
+
+function array_pluck( $array, $column, $indexColumn = null ) {
+	$out = [];
+	foreach ( $array as $item ) {
+		$value = array_get($item, $column);
+		if ( $indexColumn === null ) {
+			$out[] = $value;
+		}
+		else {
+			$key = array_get($item, $indexColumn);
+			$out[$key] = $value;
+		}
+	}
+
+	return $out;
 }
 
 function filter_xss( $html ) {
