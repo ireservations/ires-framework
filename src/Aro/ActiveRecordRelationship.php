@@ -139,10 +139,13 @@ abstract class ActiveRecordRelationship {
 	 * @param ActiveRecordObject[] $objects
 	 * @return ActiveRecordObject[]
 	 */
-	protected function keyByPk( array $objects ) {
+	protected function keyByPk( array $objects, $key = null ) {
 		$keyed = [];
 		foreach ( $objects as $object ) {
-			$keyed[ $object->getPKValue() ] = $object;
+			$id = $key ? $object->$key : $object->getPKValue();
+			if ( $id ) {
+				$keyed[$id] = $object;
+			}
 		}
 
 		return $keyed;

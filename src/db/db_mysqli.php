@@ -124,19 +124,6 @@ class db_mysqli extends db_generic {
 		return $a;
 	}
 
-	public function fetchIterator( $query, array $args = [], $safe = true ) {
-		$query = $this->replaceQMarks($query, $args);
-
-		$r = $this->query($query, $safe ? MYSQLI_STORE_RESULT : MYSQLI_USE_RESULT);
-		if ( !is_object($r) ) {
-			return false;
-		}
-
-		return $r;
-	}
-
-
-
 	public function fetch_fields( $query, $args = [] ) {
 		$query = $this->replaceQMarks($query, $args);
 

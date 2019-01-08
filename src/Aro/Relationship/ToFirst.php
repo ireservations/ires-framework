@@ -7,12 +7,19 @@ use Framework\Aro\ActiveRecordRelationship;
 
 class ToFirst extends ActiveRecordRelationship {
 
+	protected $localColumn;
+
 	public function __construct( ActiveRecordObject $source = null, $targetClass, $relationColumn ) {
 		parent::__construct($source, $targetClass, $relationColumn);
 	}
 
+	public function localColumn( $column ) {
+		$this->localColumn = $column;
+		return $this;
+	}
+
 	protected function fetch() {
-		$foreignId = $this->getForeignId($this->source);
+		$foreignId = $this->getForeignId($this->source, $this->localColumn);
 		if ( !$foreignId ) return;
 
 		$where = $this->getWhereOrder([$this->foreign => $foreignId]);
@@ -29,15 +36,15 @@ class ToFirst extends ActiveRecordRelationship {
 		$name = $this->name;
 		$foreignColumn = $this->foreign;
 
-		$objects = $this->keyByPk($objects);
-
-		$foreignIds = $this->getForeignIds($objects);
-		$where = $this->getWhereOrder([$this->foreign => $foreignIds]);
-		$targets = call_user_func([$this->target, 'findMany'], $where);
-
 		foreach ( $objects as $object ) {
 			$object->setGot($name, null);
 		}
+
+		$objects = $this->keyByPk($objects, $this->localColumn);
+
+		$foreignIds = $this->getForeignIds($objects, $this->localColumn);
+		$where = $this->getWhereOrder([$this->foreign => $foreignIds]);
+		$targets = call_user_func([$this->target, 'findMany'], $where);
 
 		foreach ( $targets as $target ) {
 			$fk = $target->$foreignColumn;

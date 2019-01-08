@@ -55,11 +55,6 @@ abstract class db_generic {
 	 */
 	abstract public function fetch( $query, $first = false, $args = [] );
 
-	/** @return Traversable */
-	abstract public function fetchIterator( $query, array $args = [], $safe = true );
-
-
-
 	/** @return array */
 	abstract public function fetch_fields( $query, $args = [] );
 
