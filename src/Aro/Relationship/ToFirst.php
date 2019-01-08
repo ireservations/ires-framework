@@ -41,6 +41,7 @@ class ToFirst extends ActiveRecordRelationship {
 		}
 
 		$objects = $this->keyByPk($objects, $this->localColumn);
+		if ( count($objects) == 0 ) return [];
 
 		$foreignIds = $this->getForeignIds($objects, $this->localColumn);
 		$where = $this->getWhereOrder([$this->foreign => $foreignIds]);
