@@ -5,6 +5,7 @@ namespace Framework\Aro;
 use ArrayAccess;
 use db_exception;
 use db_generic;
+use Framework\Aro\Relationship\ToOneScalarTable;
 use Generator;
 
 /**
@@ -131,17 +132,21 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		return new Relationship\ToMany($this, $targetClass, $foreignColumn);
 	}
 
+	/** @return ToOneScalarTable */
 	protected function to_count( $targetClass, $foreignColumn ) {
 		/** @var self $targetClass */
 		$targetTable = call_user_func([$targetClass, '_table']);
 		return (new Relationship\ToOneScalarTable($this, 'count(1)', $targetTable, $foreignColumn))
 			->default(0)
+			->cast('intval')
 			->returnType('int');
 	}
 
+	/** @return ToOneScalarTable */
 	protected function to_count_table( $targetTable, $foreignColumn ) {
 		return (new Relationship\ToOneScalarTable($this, 'count(1)', $targetTable, $foreignColumn))
 			->default(0)
+			->cast('intval')
 			->returnType('int');
 	}
 

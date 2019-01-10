@@ -10,6 +10,7 @@ class ToOneScalarTable extends ActiveRecordRelationship {
 	/** @var string */
 	protected $target;
 	protected $throughTable;
+	protected $cast;
 
 	protected $returnType = 'string';
 
@@ -24,8 +25,17 @@ class ToOneScalarTable extends ActiveRecordRelationship {
 		return $this;
 	}
 
+	public function cast( $callback ) {
+		$this->cast = $callback;
+		return $this;
+	}
+
 	protected function getTargetTable() {
 		return $this->throughTable;
+	}
+
+	protected function castValue( $value ) {
+		return $this->cast ? call_user_func($this->cast, $value) : $value;
 	}
 
 	protected function fetch() {
@@ -45,7 +55,7 @@ class ToOneScalarTable extends ActiveRecordRelationship {
 			where $where
 		";
 		$value = $db->fetch_one($sql);
-		return $value === null || $value === false ? $this->default : $value;
+		return $value === null || $value === false ? $this->default : $this->castValue($value);
 	}
 
 	/**
@@ -75,7 +85,7 @@ class ToOneScalarTable extends ActiveRecordRelationship {
 		$targets = $db->fetch_fields($sql);
 
 		foreach ( $objects as $object ) {
-			$object->setGot($name, $targets[ $object->getPKValue() ] ?? $this->default);
+			$object->setGot($name, $this->castValue($targets[ $object->getPKValue() ] ?? $this->default));
 		}
 
 		return $targets;

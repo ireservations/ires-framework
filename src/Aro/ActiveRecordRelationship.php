@@ -56,8 +56,8 @@ abstract class ActiveRecordRelationship {
 		return $this;
 	}
 
-	public function where( $where ) {
-		$this->where = $where;
+	public function where( $where, ...$args ) {
+		$this->where = $this->source->db->qmarks($where, ...$args);
 		return $this;
 	}
 
