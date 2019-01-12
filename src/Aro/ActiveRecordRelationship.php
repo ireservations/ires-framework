@@ -13,16 +13,18 @@ abstract class ActiveRecordRelationship {
 	/** @var ActiveRecordObject */
 	protected $target;
 	protected $foreign;
+	protected $local;
 	protected $where;
 	protected $order;
 	protected $key;
 	protected $joins = [];
 	protected $default = null;
 
-	public function __construct( ActiveRecordObject $source = null, $targetClass, $foreignColumn ) {
+	public function __construct( ActiveRecordObject $source = null, $targetClass, $foreignColumn, $localColumn = null ) {
 		$this->source = $source;
 		$this->target = $targetClass;
 		$this->foreign = $foreignColumn;
+		$this->local = $localColumn;
 	}
 
 	public function load() {
@@ -56,8 +58,8 @@ abstract class ActiveRecordRelationship {
 		return $this;
 	}
 
-	public function where( $where, ...$args ) {
-		$this->where = $this->source->db->qmarks($where, ...$args);
+	public function where( $where, ...$params ) {
+		$this->where = $this->source->db->qmarks($where, ...$params);
 		return $this;
 	}
 
@@ -76,7 +78,8 @@ abstract class ActiveRecordRelationship {
 		return $this;
 	}
 
-	public function join( $table, $on ) {
+	public function join( $table, $on, ...$params ) {
+		$on = $this->source->db->qmarks($on, ...$params);
 		$this->joins[] = [$table, $on];
 		return $this;
 	}

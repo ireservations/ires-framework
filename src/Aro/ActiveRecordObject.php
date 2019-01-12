@@ -124,8 +124,8 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		return new Relationship\ToFirst($this, $targetClass, $relationColumn);
 	}
 
-	protected function to_one_scalar_table( $targetColumn, $throughTable, $foreignColumn ) {
-		return new Relationship\ToOneScalarTable($this, $targetColumn, $throughTable, $foreignColumn);
+	protected function to_one_scalar_table( $targetColumn, $throughTable, $foreignColumn, $localColumn = null ) {
+		return new Relationship\ToOneScalarTable($this, $targetColumn, $throughTable, $foreignColumn, $localColumn);
 	}
 
 	protected function to_many( $targetClass, $foreignColumn ) {
@@ -158,9 +158,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		return new Relationship\ToManyThroughProperty($this, $targetClass, $throughProperty);
 	}
 
-	protected function to_many_scalar( $targetColumn, $throughTable, $foreignColumn ) {
-		return new Relationship\ToManyScalar($this, $targetColumn, $throughTable, $foreignColumn);
+	protected function to_many_scalar( $targetColumn, $throughTable, $foreignColumn, $localColumn = null ) {
+		return new Relationship\ToManyScalar($this, $targetColumn, $throughTable, $foreignColumn, $localColumn);
 	}
+
 
 	/**
 	 * @return array
@@ -173,6 +174,26 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		/** @var ActiveRecordRelationship $relationship */
 		$relationship = call_user_func([new static(), "relate_$name"]);
 		return $relationship->name($name)->loadAll($objects);
+	}
+
+	/**
+	 * @return array[]
+	 */
+	static public function eagers( array $objects, array $names ) {
+		$return = [];
+		foreach ( $names as $name ) {
+			$name = explode('.', $name);
+			$sources = count($name) == 1 ? $objects : $return[ implode('.', array_slice($name, 0, -1)) ];
+			if ( count($sources) == 0 ) {
+				$return[] = [];
+				continue;
+			}
+
+			$class = get_class(array_first($sources));
+			$return[implode('.', $name)] = call_user_func([$class, 'eager'], end($name), $sources);
+		}
+
+		return $return;
 	}
 
 

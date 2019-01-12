@@ -3,23 +3,14 @@
 namespace Framework\Aro\Relationship;
 
 use Framework\Aro\ActiveRecordObject;
-use Framework\Aro\ActiveRecordRelationship;
 
-class ToManyScalar extends ActiveRecordRelationship {
-
-	/** @var string */
-	protected $target;
-	protected $throughTable;
-
-	public function __construct( ActiveRecordObject $source = null, $targetColumn, $throughTable, $foreignColumn ) {
-		parent::__construct($source, $targetColumn, $foreignColumn);
-
-		$this->throughTable = $throughTable;
-	}
+class ToManyScalar extends ToScalar {
 
 	protected function fetch() {
 		$db = $this->db();
-		return array_values($db->select_fields($this->throughTable, $this->target, [$this->foreign => $this->source->getPKValue()]));
+		$id = $this->getForeignId($this->source, $this->local);
+		$values = array_values($db->select_fields($this->getTargetTable(), $this->target, [$this->foreign => $id]));
+		return $this->castValues($values);
 	}
 
 	/**
@@ -29,11 +20,11 @@ class ToManyScalar extends ActiveRecordRelationship {
 		$name = $this->name;
 		$db = $this->db();
 
-		$ids = $this->getForeignIds($objects);
+		$ids = $this->getForeignIds($objects, $this->local);
 
-		$links = $db->select($this->throughTable, [$this->foreign => $ids]);
+		$links = $db->select($this->getTargetTable(), [$this->foreign => $ids]);
 
-		$objects = $this->keyByPk($objects);
+		$objects = $this->keyByPk($objects, $this->local);
 
 		$grouped = [];
 		foreach ( $links as $link ) {
@@ -41,7 +32,8 @@ class ToManyScalar extends ActiveRecordRelationship {
 		}
 
 		foreach ( $objects as $object ) {
-			$object->setGot($name, $grouped[$object->getPKValue()] ?? []);
+			$id = $this->getForeignId($object, $this->local);
+			$object->setGot($name, $this->castValues($grouped[$id] ?? []));
 		}
 
 		return array_column($links, $this->target);
@@ -49,7 +41,7 @@ class ToManyScalar extends ActiveRecordRelationship {
 
 	/** @return  */
 	public function getReturnType() {
-		return 'int|string';
+		return $this->returnType . '[]';
 	}
 
 }

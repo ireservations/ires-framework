@@ -3,53 +3,15 @@
 namespace Framework\Aro\Relationship;
 
 use Framework\Aro\ActiveRecordObject;
-use Framework\Aro\ActiveRecordRelationship;
 
-class ToOneScalarTable extends ActiveRecordRelationship {
-
-	/** @var string */
-	protected $target;
-	protected $throughTable;
-	protected $localColumn;
-	protected $cast;
-
-	protected $returnType = 'string';
-
-	public function __construct( ActiveRecordObject $source = null, $targetColumn, $throughTable, $foreignColumn ) {
-		parent::__construct($source, $targetColumn, $foreignColumn);
-
-		$this->throughTable = $throughTable;
-	}
-
-	public function localColumn( $column ) {
-		$this->localColumn = $column;
-		return $this;
-	}
-
-	public function returnType( $type ) {
-		$this->returnType = $type;
-		return $this;
-	}
-
-	public function cast( $callback ) {
-		$this->cast = $callback;
-		return $this;
-	}
-
-	protected function getTargetTable() {
-		return $this->throughTable;
-	}
-
-	protected function castValue( $value ) {
-		return $this->cast ? call_user_func($this->cast, $value) : $value;
-	}
+class ToOneScalarTable extends ToScalar {
 
 	protected function fetch() {
 		$db = $this->db();
 
 		$qForeignColumn = $this->getFullTargetColumn($this->foreign);
 		$where = $this->getWhereOrder([
-			$qForeignColumn => $this->getForeignId($this->source, $this->localColumn),
+			$qForeignColumn => $this->getForeignId($this->source, $this->local),
 		]);
 
 		$table = $this->getTargetTable();
@@ -71,7 +33,7 @@ class ToOneScalarTable extends ActiveRecordRelationship {
 		$name = $this->name;
 		$db = $this->db();
 
-		$ids = $this->getForeignIds($objects, $this->localColumn);
+		$ids = $this->getForeignIds($objects, $this->local);
 
 		$foreignColumn = $this->foreign;
 		$qForeignColumn = $this->getFullTargetColumn($foreignColumn);
@@ -91,7 +53,8 @@ class ToOneScalarTable extends ActiveRecordRelationship {
 		$targets = $db->fetch_fields($sql);
 
 		foreach ( $objects as $object ) {
-			$object->setGot($name, $this->castValue($targets[ $this->getForeignId($object, $this->localColumn) ] ?? $this->default));
+			$id = $this->getForeignId($object, $this->local);
+			$object->setGot($name, $this->castValue($targets[$id] ?? $this->default));
 		}
 
 		return $targets;
