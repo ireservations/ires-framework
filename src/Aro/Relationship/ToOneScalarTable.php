@@ -10,6 +10,7 @@ class ToOneScalarTable extends ActiveRecordRelationship {
 	/** @var string */
 	protected $target;
 	protected $throughTable;
+	protected $localColumn;
 	protected $cast;
 
 	protected $returnType = 'string';
@@ -18,6 +19,11 @@ class ToOneScalarTable extends ActiveRecordRelationship {
 		parent::__construct($source, $targetColumn, $foreignColumn);
 
 		$this->throughTable = $throughTable;
+	}
+
+	public function localColumn( $column ) {
+		$this->localColumn = $column;
+		return $this;
 	}
 
 	public function returnType( $type ) {
@@ -43,7 +49,7 @@ class ToOneScalarTable extends ActiveRecordRelationship {
 
 		$qForeignColumn = $this->getFullTargetColumn($this->foreign);
 		$where = $this->getWhereOrder([
-			$qForeignColumn => $this->source->getPKValue(),
+			$qForeignColumn => $this->getForeignId($this->source, $this->localColumn),
 		]);
 
 		$table = $this->getTargetTable();
@@ -65,7 +71,7 @@ class ToOneScalarTable extends ActiveRecordRelationship {
 		$name = $this->name;
 		$db = $this->db();
 
-		$ids = $this->getForeignIds($objects);
+		$ids = $this->getForeignIds($objects, $this->localColumn);
 
 		$foreignColumn = $this->foreign;
 		$qForeignColumn = $this->getFullTargetColumn($foreignColumn);
@@ -85,7 +91,7 @@ class ToOneScalarTable extends ActiveRecordRelationship {
 		$targets = $db->fetch_fields($sql);
 
 		foreach ( $objects as $object ) {
-			$object->setGot($name, $this->castValue($targets[ $object->getPKValue() ] ?? $this->default));
+			$object->setGot($name, $this->castValue($targets[ $this->getForeignId($object, $this->localColumn) ] ?? $this->default));
 		}
 
 		return $targets;
