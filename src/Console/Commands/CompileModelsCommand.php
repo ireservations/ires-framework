@@ -75,7 +75,7 @@ class CompileModelsCommand extends Command {
 				$result = [];
 			}
 			/** @var AppActiveRecordObject $object */
-			$object = new $className($result);
+			$object = new $className($result, true);
 			$propertiesOutput = [];
 			foreach ( get_object_vars($object) as $name => $value ) {
 				if ( !isset($allVars[$name]) ) {
