@@ -182,15 +182,15 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	static public function eagers( array $objects, array $names ) {
 		$return = [];
 		foreach ( $names as $name ) {
-			$name = explode('.', $name);
-			$sources = count($name) == 1 ? $objects : $return[ implode('.', array_slice($name, 0, -1)) ];
+			$parts = explode('.', $name);
+			$sources = count($parts) == 1 ? $objects : $return[ implode('.', array_slice($parts, 0, -1)) ];
 			if ( count($sources) == 0 ) {
-				$return[] = [];
+				$return[$name] = [];
 				continue;
 			}
 
 			$class = get_class(array_first($sources));
-			$return[implode('.', $name)] = call_user_func([$class, 'eager'], end($name), $sources);
+			$return[$name] = call_user_func([$class, 'eager'], end($parts), $sources);
 		}
 
 		return $return;
