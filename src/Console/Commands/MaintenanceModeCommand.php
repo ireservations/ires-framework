@@ -21,18 +21,30 @@ class MaintenanceModeCommand extends Command {
 	}
 
 	protected function bringUp( OutputInterface $output ) {
-		if ( file_exists($file = PROJECT_PUBLIC . '/OFFLINE') ) {
-			unlink($file);
-			$output->writeln('App online');
-		}
-		else {
-			$output->writeln('App already online');
-		}
+		@unlink(PROJECT_PUBLIC . '/OFFLINE');
+
+		$this->printStatus($output, true);
 	}
 
 	protected function bringDown( OutputInterface $output ) {
-		file_put_contents(PROJECT_PUBLIC . '/OFFLINE', "We are updating. We'll be back very soon.");
-		$output->writeln('App offline');
+		@file_put_contents(PROJECT_PUBLIC . '/OFFLINE', "We are updating. We'll be back very soon.");
+
+		$this->printStatus($output, false);
+	}
+
+	protected function printStatus( OutputInterface $output, $expectOnline ) {
+		usleep(200000);
+
+		$online = !file_exists($file = PROJECT_PUBLIC . '/OFFLINE');
+		$error = $online != $expectOnline ? ' !! ' : '';
+		$still = $error ? ' still' : '';
+
+		if ( $online ) {
+			$output->writeln("{$error}App$still online{$error}");
+		}
+		else {
+			$output->writeln("{$error}App$still offline{$error}");
+		}
 	}
 
 }
