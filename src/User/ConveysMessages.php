@@ -38,7 +38,7 @@ trait ConveysMessages {
 	static function messages( $reset = true ) {
 		$messages = Session::get('messages', []);
 
-		if ( $reset ) {
+		if ( $reset && count($messages) ) {
 			Session::set('messages', []);
 		}
 
