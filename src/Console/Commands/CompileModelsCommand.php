@@ -8,6 +8,7 @@ use Framework\Aro\ActiveRecordObject;
 use Framework\Aro\ActiveRecordRelationship;
 use Framework\Console\Command;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use Symfony\Component\Console\Input\InputInterface;
@@ -31,10 +32,23 @@ class CompileModelsCommand extends Command {
 		// Find all models
 		$models = glob(PROJECT_ARO . '/*.php');
 		$classesOutput = [];
-		$missingReturnType = [];
+		$missingReturnType = $explicitGetters = [];
 
+		$imports = [];
 		foreach ( $models as $modelFile ) {
 			require_once $modelFile;
+
+			$code = file_get_contents($modelFile);
+			preg_match_all('#(?<=[\r\n])use (.+?);#', $code, $matches);
+
+			$modelModel = substr(basename($modelFile), 0, -4);
+			foreach ( $matches[1] ?? [] as $className ) {
+				try {
+					$class = new ReflectionClass($className);
+					$imports[$modelModel][$class->getShortName()] = $className;
+				}
+				catch ( ReflectionException $ex ) {}
+			}
 		}
 
 		/** @var ActiveRecordObject $className */
@@ -65,6 +79,8 @@ class CompileModelsCommand extends Command {
 				print_r(array_keys($allVars));
 				echo "\n";
 			}
+
+			$localImports = $imports[$class->getShortName()] ?? [];
 
 			// Columns
 			try {
@@ -110,6 +126,39 @@ class CompileModelsCommand extends Command {
 				'__COLUMN_PROPERTIES__' => rtrim(implode($propertiesOutput)),
 			]);
 
+			// Relationships
+			$propertiesOutput = [];
+			foreach ( $class->getMethods() as $method ) {
+				if ( !$method->isStatic() && strpos($method->getName(), 'relate_') === 0 ) {
+					$name = substr($method->getName(), 7);
+
+					if ( !isset($allVars[$name]) ) {
+						$allVars[$name] = 1;
+						$totalProperties++;
+
+						$method->setAccessible(true);
+						/** @var ActiveRecordRelationship $relation */
+						$relation = $method->invoke($object);
+
+						$propertiesOutput[$name] = strtr($_propertyOutput, [
+							'__TYPE__' => $relation->getReturnType(),
+							'__NAME__' => $name,
+						]);
+					}
+				}
+			}
+
+			if ( $onlyClass ) {
+				echo "Relationships:\n";
+				ksort($propertiesOutput);
+				print_r(array_keys($propertiesOutput));
+				echo "\n";
+			}
+
+			$classOutput = strtr($classOutput, [
+				'__RELATIONSHIP_PROPERTIES__' => rtrim(implode($propertiesOutput)),
+			]);
+
 			// Getters
 			$propertiesOutput = [];
 			foreach ( $class->getMethods() as $method ) {
@@ -121,6 +170,15 @@ class CompileModelsCommand extends Command {
 						$totalProperties++;
 
 						$type = $this->getMethodReturnType($method);
+						if ( $type ) {
+							if ( isset($localImports[$type]) ) {
+								$type = '\\' . $localImports[$type];
+							}
+							elseif ( $type[0] == '\\' ) {
+								$explicitGetters[$class->getShortName()][$name] = $type;
+							}
+						}
+
 						$propertiesOutput[$name] = strtr($_propertyOutput, [
 							'__TYPE__' => $type ?: 'mixed',
 							'__NAME__' => $name,
@@ -144,34 +202,6 @@ class CompileModelsCommand extends Command {
 				'__GETTER_PROPERTIES__' => rtrim(implode($propertiesOutput)),
 			]);
 
-			// Relationships
-			$propertiesOutput = [];
-			foreach ( $class->getMethods() as $method ) {
-				if ( !$method->isStatic() && strpos($method->getName(), 'relate_') === 0 ) {
-					$name = substr($method->getName(), 7);
-
-					$method->setAccessible(true);
-					/** @var ActiveRecordRelationship $relation */
-					$relation = $method->invoke($object);
-
-					$propertiesOutput[$name] = strtr($_propertyOutput, [
-						'__TYPE__' => $relation->getReturnType(),
-						'__NAME__' => $name,
-					]);
-				}
-			}
-
-			if ( $onlyClass ) {
-				echo "Relationships:\n";
-				ksort($propertiesOutput);
-				print_r(array_keys($propertiesOutput));
-				echo "\n";
-			}
-
-			$classOutput = strtr($classOutput, [
-				'__RELATIONSHIP_PROPERTIES__' => rtrim(implode($propertiesOutput)),
-			]);
-
 			$classesOutput[] = $classOutput;
 		}
 
@@ -183,6 +213,9 @@ class CompileModelsCommand extends Command {
 
 		echo "Missing return types: " . array_sum(array_map('count', $missingReturnType)) . "\n";
 		$missingReturnType and print_r($missingReturnType);
+
+		echo "Over-explicit return types: " . array_sum(array_map('count', $explicitGetters)) . "\n";
+		$explicitGetters and print_r($explicitGetters);
 
 		if ( $onlyClass ) {
 			return;

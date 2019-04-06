@@ -19,7 +19,14 @@ function array_first( $arr ) {
 	if ( count($arr) == 0 ) return null;
 
 	reset($arr);
-	return $arr[key($arr)];
+	return current($arr);
+}
+
+function array_last( $arr ) {
+	if ( count($arr) == 0 ) return null;
+
+	reset($arr);
+	return end($arr);
 }
 
 function array_set( &$array, $path, $value ) {
@@ -67,6 +74,20 @@ function aro_options( $objects, $label = null, $key = null, $sort = false ) {
 	$sort and natcasesort($options);
 
 	return $options;
+}
+
+function array_flatten( $array ) {
+	$items = [];
+	foreach ( $array as $item ) {
+		if ( is_array($item) ) {
+			$items = array_merge($items, array_flatten($item));
+		}
+		else {
+			$items[] = $item;
+		}
+	}
+
+	return $items;
 }
 
 function array_pluck( $array, $column, $indexColumn = null ) {
