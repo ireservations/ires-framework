@@ -2,6 +2,7 @@
 
 namespace Framework\Http;
 
+use db_foreignkey_exception;
 use Framework\Annotations\Access;
 use Framework\Annotations\Loaders;
 use App\Controllers\HomeController;
@@ -359,6 +360,14 @@ abstract class Controller {
 			debug_exit("db_duplicate_exception: " . escapehtml($ex->getMessage()), $ex);
 
 			$message = 'This record seems to exist. Check input.';
+			$response = new TextResponse($message, 400);
+		}
+
+		elseif ( $ex instanceof db_foreignkey_exception ) {
+			debug_exit("db_foreignkey_exception: " . escapehtml($ex->getMessage()), $ex);
+
+			$table = $ex->getTable() ? ": " . $ex->getTable() : '';
+			$message = "You can't " . $ex->getAction() . " this record, because it still has dependencies$table.";
 			$response = new TextResponse($message, 400);
 		}
 

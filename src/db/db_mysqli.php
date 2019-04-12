@@ -80,12 +80,12 @@ class db_mysqli extends db_generic {
 			if ( error_reporting() ) {
 				if ( $this->except ) {
 					$duplicate = strpos($this->error, 'Duplicate entry ') === 0;
-					$foreignKey = preg_match('#^Cannot (add|delete) or update a (child|parent) row: a foreign key constraint fails#', $this->error);
+					$foreignKey = preg_match('#^Cannot (add|delete) or update a (child|parent) row: a foreign key constraint fails#', $this->error, $fkMatch);
 					if ( $duplicate ) {
 						throw new db_duplicate_exception($this->error . ' -- ' . $query);
 					}
 					elseif ( $foreignKey) {
-						throw new db_foreignkey_exception($this->error . ' -- ' . $query);
+						throw new db_foreignkey_exception($this->error . ' -- ' . $query, $fkMatch[1]);
 					}
 					else {
 						throw new db_exception($this->error . ' -- ' . $query);
