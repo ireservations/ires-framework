@@ -63,10 +63,10 @@ class db_mysqli extends db_generic {
 
 
 
-	public function query( $query, $resultmode = MYSQLI_STORE_RESULT ) {
+	public function query( $query ) {
 		$_start = microtime(1);
 
-		$r = $this->dbCon->query($query, $resultmode);
+		$r = $this->dbCon->query($query);
 		$this->error = $r ? '' : $this->dbCon->error;
 		$this->errno = $r ? 0 : $this->dbCon->errno;
 		$this->num_queries++;
