@@ -258,7 +258,7 @@ abstract class db_generic {
 	/** @return int */
 	public function count_rows( $query ) {
 		$query = rtrim($query, ';');
-		$query = preg_replace('#SELECT[\s\S]+?FROM\s#i', 'SELECT 1 FROM ', $query);
+		$query = preg_replace('#SELECT[\s\S]+?FROM\s#i', 'SELECT 1 FROM ', $query, 1);
 		$count = $this->fetch_one('SELECT COUNT(1) num FROM (' . $query . ') x');
 		return $count !== false ? (int) $count : false;
 	}
