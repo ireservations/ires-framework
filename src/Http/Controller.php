@@ -111,6 +111,61 @@ abstract class Controller {
 	}
 
 
+	static protected function matchControllerRoute( $route, $uri, &$params, &$path ) {
+		$params = [];
+
+		$route = strtr($route, static::$action_path_wildcard_aliases);
+
+		$regex = strtr($route, static::$action_path_wildcards);
+		$regex = "#^$regex(/.*|$)#";
+
+		if ( preg_match($regex, $uri, $params) ) {
+			array_shift($params);
+
+			$path = trim(array_pop($params), '/');
+
+			$params = self::matchParams($route, $params);
+
+			return $params !== false;
+		}
+	}
+
+	static protected function matchActionRoute( $route, $uri, &$params ) {
+		$params = [];
+
+		$route = strtr($route, static::$action_path_wildcard_aliases);
+
+		$regex = strtr($route, static::$action_path_wildcards);
+		$regex = "#^$regex$#";
+
+		if ( preg_match($regex, $uri, $params) ) {
+			array_shift($params);
+
+			$params = self::matchParams($route, $params);
+
+			return $params !== false;
+		}
+	}
+
+	static protected function matchParams( $route, array $params ) {
+		preg_match_all('#(' . implode('|', array_keys(static::$action_path_wildcards)) . ')#', $route, $matches);
+		$wildcards = $matches[1];
+
+		foreach ( $params as $i => $param ) {
+			$params[$i] = static::matchParam($wildcards[$i], $param);
+			if ( $params[$i] === false ) {
+				return false;
+			}
+		}
+
+		return $params;
+	}
+
+	static protected function matchParam( $type, $value ) {
+		return $value;
+	}
+
+
 	/**
 	 * 1 .   T h e   M V C   s t a r t e r
 	 * @return static
@@ -136,14 +191,9 @@ abstract class Controller {
 		$uri = trim($uri, '/');
 
 		foreach ( array_reverse(static::$mapping) as $prefix => $class) {
-			$prefix = strtr($prefix, self::$action_path_wildcard_aliases);
-			$prefix = strtr($prefix, self::$action_path_wildcards);
-
-			if ( preg_match('#^' . $prefix . '(/.*|$)#', $uri, $match) ) {
+			if ( self::matchControllerRoute($prefix, $uri, $params, $path) ) {
 				if ( $class = static::getControllerClass($class) ) {
-					array_shift($match);
-					$path = trim(array_pop($match), '/');
-					return [$class, $path, $match];
+					return [$class, $path, $params];
 				}
 			}
 		}
@@ -209,10 +259,7 @@ abstract class Controller {
 		$requestMethods = ['all', strtolower(Request::method())];
 
 		foreach ( $this->getHooks() AS $hook ) {
-			$szPathRegex = $this->makeHookRegex($hook->path);
-			if ( 0 < preg_match($szPathRegex, $requestUri, $arrArgs) ) {
-				array_shift($arrArgs);
-
+			if ( self::matchActionRoute($hook->path, $requestUri, $arrArgs) ) {
 				if ( in_array($hook->method, $requestMethods) && is_callable(array($this, $hook->action)) ) {
 					$this->m_arrOptions = $hook->args;
 					$this->m_szRequestUriMatch = $hook->path;
