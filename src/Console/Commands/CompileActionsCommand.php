@@ -6,12 +6,14 @@ use Framework\Console\Command;
 use App\Services\Http\AppController;
 use ReflectionException;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class CompileActionsCommand extends Command {
 
 	protected function configure() {
 		$this->setName('ide:actions');
+		$this->addOption('grep', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED);
 	}
 
 	protected function execute( InputInterface $input, OutputInterface $output ) {
@@ -54,16 +56,32 @@ class CompileActionsCommand extends Command {
 			}
 		}
 
-		sort($actions);
-		sort($specialActions);
+		$showActions = $actions;
+		$showSpecialActions = $specialActions;
 
-		echo "\n" . count($actions) . " actions:\n\n";
-		echo implode("\n", $actions) . "\n\n";
-		echo "^ " . count($actions) . " actions\n";
+		if ( count($greps = $input->getOption('grep')) ) {
+			$filter = function($action) use ($greps) {
+				foreach ( $greps as $grep ) {
+					if ( strpos($action, $grep) === false ) {
+						return false;
+					}
+				}
+				return true;
+			};
+			$showActions = array_filter($showActions, $filter);
+			$showSpecialActions = array_filter($showSpecialActions, $filter);
+		}
 
-		echo "\n" . count($specialActions) . " special actions:\n\n";
-		echo implode("\n", $specialActions) . "\n\n";
-		echo "^ " . count($specialActions) . " special actions\n";
+		sort($showActions);
+		sort($showSpecialActions);
+
+		echo "\n" . count($showActions) . " / " . count($actions) . " actions:\n\n";
+		echo implode("\n", $showActions) . "\n\n";
+		echo "^ " . count($showActions) . " / " . count($actions) . " actions\n";
+
+		echo "\n" . count($showSpecialActions) . " / " . count($specialActions) . " special actions:\n\n";
+		echo implode("\n", $showSpecialActions) . "\n\n";
+		echo "^ " . count($showSpecialActions) . " / " . count($specialActions) . " special actions\n";
 
 		if ( $exceptions ) {
 			echo "\nerrors:\n";

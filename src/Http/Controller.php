@@ -151,6 +151,10 @@ abstract class Controller {
 		preg_match_all('#(' . implode('|', array_keys(static::$action_path_wildcards)) . ')#', $route, $matches);
 		$wildcards = $matches[1];
 
+		if ( count($wildcards) != count($params) ) {
+			return $params;
+		}
+
 		foreach ( $params as $i => $param ) {
 			$params[$i] = static::matchParam($wildcards[$i], $param);
 			if ( $params[$i] === false ) {
