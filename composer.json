@@ -1,6 +1,9 @@
 {
     "name": "rdx/framework",
     "description": "",
+    "require-dev": {
+        "nikic/php-parser": "^4.2"
+    },
     "require": {
         "doctrine/annotations": "^1.6",
         "smarty/smarty": "^3.1",

@@ -7,8 +7,8 @@ use db_exception;
 use Framework\Aro\ActiveRecordObject;
 use Framework\Aro\ActiveRecordRelationship;
 use Framework\Console\Command;
+use PhpParser;
 use ReflectionClass;
-use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use Symfony\Component\Console\Input\InputInterface;
@@ -34,21 +34,24 @@ class CompileModelsCommand extends Command {
 		$classesOutput = [];
 		$missingReturnType = $explicitGetters = [];
 
+		/** @var PhpParser\NameContext[] $imports */
 		$imports = [];
 		foreach ( $models as $modelFile ) {
 			require_once $modelFile;
 
-			$code = file_get_contents($modelFile);
-			preg_match_all('#(?<=[\r\n])use (.+?);#', $code, $matches);
-
 			$modelModel = substr(basename($modelFile), 0, -4);
-			foreach ( $matches[1] ?? [] as $className ) {
-				try {
-					$class = new ReflectionClass($className);
-					$imports[$modelModel][$class->getShortName()] = $className;
-				}
-				catch ( ReflectionException $ex ) {}
+			$code = file_get_contents($modelFile);
+
+			$parser = (new PhpParser\ParserFactory)->create(PhpParser\ParserFactory::PREFER_PHP7);
+			try {
+				$ast = $parser->parse($code);
+				$nameResolver = new PhpParser\NodeVisitor\NameResolver();
+				$nodeTraverser = new PhpParser\NodeTraverser();
+				$nodeTraverser->addVisitor($nameResolver);
+				$nodeTraverser->traverse($ast);
+				$imports[$modelModel] = $nameResolver->getNameContext();
 			}
+			catch ( PhpParser\Error $error ) {}
 		}
 
 		/** @var ActiveRecordObject $className */
@@ -80,7 +83,7 @@ class CompileModelsCommand extends Command {
 				echo "\n";
 			}
 
-			$localImports = $imports[$class->getShortName()] ?? [];
+			$localImports = $imports[$class->getShortName()] ?? null;
 
 			// Columns
 			try {
@@ -171,8 +174,8 @@ class CompileModelsCommand extends Command {
 
 						$type = $this->getMethodReturnType($method);
 						if ( $type ) {
-							if ( isset($localImports[$type]) ) {
-								$type = '\\' . $localImports[$type];
+							if ( $type[0] != strtolower($type[0]) ) {
+								$type = $localImports->getResolvedClassName(new PhpParser\Node\Name($type))->toCodeString();
 							}
 							elseif ( $type[0] == '\\' ) {
 								$explicitGetters[$class->getShortName()][$name] = $type;
