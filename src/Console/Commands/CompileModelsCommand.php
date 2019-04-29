@@ -42,7 +42,7 @@ class CompileModelsCommand extends Command {
 			$modelModel = substr(basename($modelFile), 0, -4);
 			$code = file_get_contents($modelFile);
 
-			$parser = (new PhpParser\ParserFactory)->create(PhpParser\ParserFactory::PREFER_PHP7);
+			$parser = (new PhpParser\ParserFactory)->create(PhpParser\ParserFactory::ONLY_PHP7, new CompileModels\MinimalPhpLexer());
 			try {
 				$ast = $parser->parse($code);
 				$nameResolver = new PhpParser\NodeVisitor\NameResolver();
