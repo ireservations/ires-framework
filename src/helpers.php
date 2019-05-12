@@ -92,10 +92,13 @@ function array_flatten( $array ) {
 
 function array_pluck( $array, $column, $indexColumn = null ) {
 	$out = [];
-	foreach ( $array as $item ) {
+	foreach ( $array as $key => $item ) {
 		$value = array_get($item, $column);
 		if ( $indexColumn === null ) {
 			$out[] = $value;
+		}
+		elseif ( $indexColumn === true ) {
+			$out[$key] = $value;
 		}
 		else {
 			$key = array_get($item, $indexColumn);
