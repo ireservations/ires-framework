@@ -162,8 +162,6 @@ function debug_exit( $title, $more = '' ) {
 			$more = print_r($more, true);
 		}
 
-		watchdog('debug_exit', "$title\n\n$more\n\n" . print_r(_debug_backtrace($trace), true));
-
 		if ( Request::ajax() || Request::cli() || !ini_get('html_errors') ) {
 			echo "<pre>$more\n";
 			print_r(_debug_backtrace($trace));
