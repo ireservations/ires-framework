@@ -174,7 +174,7 @@ class CompileModelsCommand extends Command {
 
 						$type = $this->getMethodReturnType($method);
 						if ( $type ) {
-							if ( $type[0] != strtolower($type[0]) ) {
+							if ( $type[0] != strtolower($type[0]) || strpos($type, '_') !== false ) {
 								$type = $localImports->getResolvedClassName(new PhpParser\Node\Name($type))->toCodeString();
 							}
 							elseif ( $type[0] == '\\' ) {
