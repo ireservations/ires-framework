@@ -5,7 +5,7 @@ namespace Framework\Aro;
 trait LogsChanges {
 
 	abstract function getPKValue();
-	abstract static function presave( array &$data );
+	// abstract static function presave( array &$data );
 
 	abstract public function _logChangesLog( $type, $changes );
 
