@@ -178,7 +178,10 @@ class CompileModelsCommand extends Command {
 								$type = $localImports->getResolvedClassName(new PhpParser\Node\Name($type))->toCodeString();
 							}
 							elseif ( $type[0] == '\\' ) {
-								$explicitGetters[$class->getShortName()][$name] = $type;
+								$shortTarget = rtrim(strtolower(basename(str_replace('\\', '/', $type))), '[]');
+								if ( !in_array($shortTarget, ['resource']) ) {
+									$explicitGetters[$class->getShortName()][$name] = $type;
+								}
 							}
 						}
 
