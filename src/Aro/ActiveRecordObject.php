@@ -330,13 +330,13 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	 * Returns all records it finds
 	 * @return Generator|static[]
 	 */
-	static public function fetchIterator( $conditions, array $args = [] ) {
+	static public function fetchIterator( $conditions, array $args = [], array $options = [] ) {
 		if ( is_array($conditions) ) {
 			$conditions = static::$_db->stringifyConditions($conditions);
 		}
 
 		$query = static::getQuery($conditions);
-		return static::byQueryIterator($query, $args);
+		return static::byQueryIterator($query, $args, $options);
 	}
 
 
@@ -485,19 +485,28 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	 * @throws db_exception
 	 * @return Generator|static[]
 	 */
-	static public function byQueryIterator( $f_szSqlQuery, array $f_args = [], $limit = null ) {
-		$limit or $limit = static::ITERATOR_LIMIT;
+	static public function byQueryIterator( $f_szSqlQuery, array $f_args = [], array $options = [] ) {
+		$options += [
+			'limit' => static::ITERATOR_LIMIT,
+		];
 
 		$page = 0;
-		$fetch = function() use ($f_szSqlQuery, $f_args, &$page, $limit) {
-			$offset = $page++ * $limit;
-			return static::byQuery("$f_szSqlQuery LIMIT $limit OFFSET $offset", $f_args);
+		$fetch = function() use ($f_szSqlQuery, $f_args, &$page, $options) {
+			$offset = $page++ * $options['limit'];
+			$objects = static::byQuery("$f_szSqlQuery LIMIT {$options['limit']} OFFSET $offset", $f_args);
+			if ( $options['after_fetch'] ) {
+				call_user_func($options['after_fetch'], $objects);
+			}
+			return $objects;
 		};
 
-		while ( count($objects = $fetch()) ) {
+		$objects = $fetch();
+		while ( count($objects) ) {
 			foreach ( $objects as $object ) {
 				yield $object;
 			}
+
+			$objects = count($objects) == $options['limit'] ? $fetch() : [];
 		}
 	}
 
