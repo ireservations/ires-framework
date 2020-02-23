@@ -488,6 +488,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	static public function byQueryIterator( $f_szSqlQuery, array $f_args = [], array $options = [] ) {
 		$options += [
 			'limit' => static::ITERATOR_LIMIT,
+			'after_fetch' => null,
 		];
 
 		$page = 0;
