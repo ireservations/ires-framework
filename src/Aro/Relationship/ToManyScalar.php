@@ -9,7 +9,17 @@ class ToManyScalar extends ToScalar {
 	protected function fetch() {
 		$db = $this->db();
 		$id = $this->getForeignId($this->source, $this->local);
-		$values = array_values($db->select_fields($this->getTargetTable(), $this->target, [$this->foreign => $id]));
+
+		$columns = $this->key ? "$this->key, $this->target" : $this->target;
+		$joins = $this->buildJoins();
+		$whereOrder = $this->getWhereOrder([$this->foreign => $id]);
+		$values = $db->fetch_fields("
+			select $columns
+			from {$this->getTargetTable()}
+			$joins
+			where $whereOrder
+		");
+
 		return $this->castValues($values);
 	}
 
@@ -22,13 +32,26 @@ class ToManyScalar extends ToScalar {
 
 		$ids = $this->getForeignIds($objects, $this->local);
 
-		$links = $db->select($this->getTargetTable(), [$this->foreign => $ids]);
+		$keyColumn = $this->key ?: '1';
+		$joins = $this->buildJoins();
+		$whereOrder = $this->getWhereOrder([$this->foreign => $ids]);
+		$links = $db->fetch("
+			select $this->foreign _foreign, $keyColumn _key, $this->target _value
+			from {$this->getTargetTable()}
+			$joins
+			where $whereOrder
+		");
 
 		$objects = $this->keyByPk($objects, $this->local);
 
 		$grouped = [];
 		foreach ( $links as $link ) {
-			$grouped[ $link[$this->foreign] ][] = $link[$this->target];
+			if ( $this->key ) {
+				$grouped[ $link['_foreign'] ][ $link['_key'] ] = $link['_value'];
+			}
+			else {
+				$grouped[ $link['_foreign'] ][] = $link['_value'];
+			}
 		}
 
 		foreach ( $objects as $object ) {
@@ -36,7 +59,7 @@ class ToManyScalar extends ToScalar {
 			$object->setGot($name, $this->castValues($grouped[$id] ?? []));
 		}
 
-		return array_column($links, $this->target);
+		return array_column($links, '_value');
 	}
 
 	/** @return  */
