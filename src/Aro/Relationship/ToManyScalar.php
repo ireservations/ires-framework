@@ -19,6 +19,9 @@ class ToManyScalar extends ToScalar {
 			$joins
 			where $whereOrder
 		");
+		if ( !$this->key ) {
+			$values = array_values($values);
+		}
 
 		return $this->castValues($values);
 	}
