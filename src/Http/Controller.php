@@ -58,6 +58,7 @@ abstract class Controller {
 	protected $m_szHook					= '';
 	protected $m_arrCtrlrArgs			= [];
 	protected $m_arrActionArgs			= [];
+	protected $m_arrRunOptions			= [];
 	protected $m_arrOptions				= [];
 	protected $m_arrCtrlrAnnotations	= [];
 	protected $m_arrActionAnnotations	= [];
@@ -174,15 +175,15 @@ abstract class Controller {
 	 * 1 .   T h e   M V C   s t a r t e r
 	 * @return static
 	 */
-	public static function run( $f_szFullRequestUri ) {
+	public static function run( $f_szFullRequestUri, array $f_arrRunOptions = [] ) {
 		if ( '/' == $f_szFullRequestUri ) {
 			// Index
-			return new HomeController('/');
+			return new HomeController('/', [], $f_arrRunOptions);
 		}
 
 		list($szControllerClass, $szActionPath, $arrControllerArgs) = static::findController($f_szFullRequestUri);
 
-		$application = new $szControllerClass($szActionPath, $arrControllerArgs);
+		$application = new $szControllerClass($szActionPath, $arrControllerArgs, $f_arrRunOptions);
 
 		return $application;
 	}
@@ -233,7 +234,9 @@ abstract class Controller {
 	/**
 	 * 2 .   L o a d   t h e   a p p l i c a t i o n
 	 */
-	public function __construct( $f_szUri, $f_arrCtrlrArgs = [] ) {
+	public function __construct( $f_szUri, array $f_arrCtrlrArgs = [], array $f_arrRunOptions = [] ) {
+		$this->m_arrRunOptions = $f_arrRunOptions + [];
+
 		$this->m_arrCtrlrArgs = $f_arrCtrlrArgs;
 
 		$this->m_szRequestUri = '/' . trim($f_szUri, '/');

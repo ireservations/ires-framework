@@ -71,6 +71,10 @@ trait ChecksAccess {
 
 
 	protected function aclCheck() {
+		if ( ($this->m_arrRunOptions['access'] ?? true) === false ) {
+			return;
+		}
+
 		if ( !empty($this->acl[$this->m_szHook]) ) {
 			foreach ( $this->acl[$this->m_szHook] AS $zone => $arg ) {
 				if ( !$this->aclAccess($zone, $arg) ) {
