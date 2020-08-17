@@ -639,6 +639,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		$query = $this->getQuery($conditions);
 		$data = static::$_db->fetch($query);
 
+		if ( !count($data) ) {
+			throw new ActiveRecordException("Refresh-record doesn't exist!?", 0, get_class($this));
+		}
+
 		// remove cached getters/relations
 		$this->clean();
 
