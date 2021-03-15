@@ -16,7 +16,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	use ValidatesTokens;
 
-	const ITERATOR_LIMIT = 200;
+	const ITERATOR_PAGE_SIZE = 500;
 
 
 	/**
@@ -485,30 +485,8 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	 * @throws db_exception
 	 * @return Generator|static[]
 	 */
-	static public function byQueryIterator( $f_szSqlQuery, array $f_args = [], array $options = [] ) {
-		$options += [
-			'limit' => static::ITERATOR_LIMIT,
-			'after_fetch' => null,
-		];
-
-		$page = 0;
-		$fetch = function() use ($f_szSqlQuery, $f_args, &$page, $options) {
-			$offset = $page++ * $options['limit'];
-			$objects = static::byQuery("$f_szSqlQuery LIMIT {$options['limit']} OFFSET $offset", $f_args);
-			if ( $options['after_fetch'] ) {
-				call_user_func($options['after_fetch'], $objects);
-			}
-			return $objects;
-		};
-
-		$objects = $fetch();
-		while ( count($objects) ) {
-			foreach ( $objects as $object ) {
-				yield $object;
-			}
-
-			$objects = count($objects) == $options['limit'] ? $fetch() : [];
-		}
+	static public function byQueryIterator( $query, array $args = [], array $options = [] ) {
+		return new ActiveRecorGenerator(get_called_class(), $query, $args, $options);
 	}
 
 
