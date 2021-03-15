@@ -150,6 +150,8 @@ function debug_exit( $title, $more = '' ) {
 	if ( Request::debug() ) {
 		@ob_end_clean();
 		@header("HTTP/1.1 500 debug_exit");
+		@header('Content-type: text/html; charset=utf-8');
+		@header('Content-Disposition: inline');
 
 		echo '<h2>' . $title . "</h2>\n\n";
 
