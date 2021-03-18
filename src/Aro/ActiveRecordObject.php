@@ -491,7 +491,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	 * @return Generator|static[]
 	 */
 	static public function byQueryIterator( $query, array $args = [], array $options = [] ) {
-		return new ActiveRecorGenerator(get_called_class(), $query, $args, $options);
+		return new ActiveRecordGenerator(get_called_class(), $query, $args, $options);
 	}
 
 

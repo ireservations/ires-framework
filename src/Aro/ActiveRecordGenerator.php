@@ -5,7 +5,7 @@ namespace Framework\Aro;
 use Countable;
 use IteratorAggregate;
 
-class ActiveRecorGenerator implements IteratorAggregate, Countable {
+class ActiveRecordGenerator implements IteratorAggregate, Countable {
 
 	protected $aroClass;
 	protected $query;
