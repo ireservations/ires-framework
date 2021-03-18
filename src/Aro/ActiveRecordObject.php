@@ -114,6 +114,14 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		return static::$_db->select_fields(static::$_table, $field, "$field IS NOT NULL GROUP BY $field ORDER BY $field");
 	}
 
+	static public function deletes( $conditions, ...$args ) {
+		static::$_db->delete(static::$_table, $conditions, ...$args);
+	}
+
+	static public function updates( array $update, $conditions, ...$args ) {
+		static::$_db->update(static::$_table, $update, $conditions, ...$args);
+	}
+
 
 
 	protected function to_one( $targetClass, $foreignColumn ) {
@@ -201,10 +209,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 *
 	 */
-	public function __construct( $data = null, $loaded = false ) {
+	public function __construct( $data = null ) {
 		$this->_loaded = $loaded;
 
-		if ( null !== $data && !is_scalar($data) ) {
+		if ( is_array($data) && count($data) ) {
 			$this->fill($data);
 		}
 	}
@@ -467,8 +475,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 		$objects = array();
 		foreach ( $records AS $record ) {
-			$object = new static($record, true);
-			$object->_loaded = true;
+			$object = new static($record);
 			if ( $f_szKeyField ) {
 				$objects[ $object->$f_szKeyField ] = $object;
 			}
@@ -584,7 +591,8 @@ abstract class ActiveRecordObject implements ArrayAccess {
 			if ( static::$_pk && $id ) {
 				$data[static::$_pk] = $id;
 			}
-			$object = new static($data, false);
+			$object = new static($data);
+			$object->_loaded = false;
 			if ( static::$_pk && $id  ) {
 				static::_oneToCache(static::class, $id, $object);
 			}
