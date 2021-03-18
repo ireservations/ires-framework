@@ -22,6 +22,7 @@ use Framework\Http\Response\Response;
 use Framework\Http\Response\TextResponse;
 use App\Services\Tpl\AppTemplate;
 use db_duplicate_exception;
+use db_exception;
 use db_generic;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\AnnotationRegistry;
@@ -423,6 +424,11 @@ abstract class Controller {
 			$table = $ex->getTable() ? ": " . $ex->getTable() : '';
 			$message = "You can't " . $ex->getAction() . " this record, because it still has dependencies$table.";
 			$response = new TextResponse($message, 400);
+		}
+
+		elseif ( $ex instanceof db_exception ) {
+			debug_exit("db_exception: " . escapehtml($ex->getMessage()), $ex);
+			$response = new TextResponse('Database error. Contact admin.', 500);
 		}
 
 		elseif ( $ex instanceof InvalidInputException ) {
