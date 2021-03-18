@@ -220,8 +220,8 @@ class CompileModelsCommand extends Command {
 		echo "Missing return types: " . array_sum(array_map('count', $missingReturnType)) . "\n";
 		$missingReturnType and print_r($missingReturnType);
 
-		echo "Over-explicit return types: " . array_sum(array_map('count', $explicitGetters)) . "\n";
-		$explicitGetters and print_r($explicitGetters);
+		// echo "Over-explicit return types: " . array_sum(array_map('count', $explicitGetters)) . "\n";
+		// $explicitGetters and print_r($explicitGetters);
 
 		if ( $onlyClass ) {
 			return;
@@ -251,6 +251,15 @@ class CompileModelsCommand extends Command {
 	}
 
 	protected function getMethodReturnType( ReflectionMethod $method ) {
+		$type = $method->getReturnType();
+		if ( $type ) {
+			$nullable = $type->allowsNull() ? '?' : '';
+			if ( $type->isBuiltin() ) {
+				return $nullable . $type->getName();
+			}
+
+			return $nullable . '\\' . $type->getName();
+		}
 		return $this->getCommentType($method->getDocComment(), 'return');
 	}
 
