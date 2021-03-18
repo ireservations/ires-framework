@@ -77,7 +77,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 * Whether the db data have been loaded
 	 */
-	protected $_loaded = false;
+	protected $_loaded = true;
 
 	/**
 	 * Magic getter cache
@@ -210,8 +210,6 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	 *
 	 */
 	public function __construct( $data = null ) {
-		$this->_loaded = $loaded;
-
 		if ( is_array($data) && count($data) ) {
 			$this->fill($data);
 		}
