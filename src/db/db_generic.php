@@ -258,6 +258,10 @@ abstract class db_generic {
 	/** @return int */
 	public function count_rows( $query ) {
 		$query = trim(rtrim($query, ';'));
+		$n = 0;
+		$query = preg_replace_callback('#(\S+\.\*)#', function($m) use (&$n) {
+			return '1 as x' . (++$n);
+		}, $query);
 		$count = $this->fetch_one("SELECT COUNT(1) num FROM ($query) x");
 		return $count !== false ? (int) $count : false;
 	}
