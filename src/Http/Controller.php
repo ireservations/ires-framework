@@ -390,7 +390,7 @@ abstract class Controller {
 	function handleResult( $result ) {
 		if ( is_scalar($result) ) {
 			$result = trim($result);
-			$result = $result[0] == '<' ? new HtmlResponse($result) : new TextResponse($result);
+			$result = strlen($result) && $result[0] == '<' ? new HtmlResponse($result) : new TextResponse($result);
 		}
 
 		if ( is_array($result) ) {
