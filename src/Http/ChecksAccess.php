@@ -16,7 +16,7 @@ trait ChecksAccess {
 	/** @return Hook[] */
 	abstract protected function getHooks();
 
-	protected function aclAdd( $zones, $hooks = null, $arg = -1 ) {
+	protected function aclAdd( $zones, $hooks = null, $args = [] ) {
 		if ( $hooks === null ) {
 			$hooks = [];
 			foreach ( $this->getHooks() as $hook ) {
@@ -29,7 +29,7 @@ trait ChecksAccess {
 
 		foreach ( $hooks AS $hook ) {
 			foreach ( $zones AS $zone ) {
-				$this->acl[$hook][$zone] = $arg;
+				$this->acl[$hook][$zone] = $args;
 			}
 		}
 
@@ -55,7 +55,7 @@ trait ChecksAccess {
 	protected function aclAlterAnnotations( $hook, array $accesses ) {
 		foreach ( $accesses AS $access ) {
 			$zone = $access->value;
-			$arg = $access->arg;
+			$args = $access->getArgs();
 
 			// aclRemove
 			if ( $zone[0] == '-' ) {
@@ -63,7 +63,7 @@ trait ChecksAccess {
 			}
 			// aclAdd
 			else {
-				$this->aclAdd(ltrim($zone, '+-'), $hook, $arg);
+				$this->aclAdd(ltrim($zone, '+-'), $hook, $args);
 			}
 		}
 
@@ -76,8 +76,8 @@ trait ChecksAccess {
 		}
 
 		if ( !empty($this->acl[$this->m_szHook]) ) {
-			foreach ( $this->acl[$this->m_szHook] AS $zone => $arg ) {
-				if ( !$this->aclAccess($zone, $arg) ) {
+			foreach ( $this->acl[$this->m_szHook] AS $zone => $args ) {
+				if ( !$this->aclAccess($zone, $args) ) {
 					return $this->aclExit($zone);
 				}
 			}
@@ -98,15 +98,31 @@ trait ChecksAccess {
 	} // END aclExit() */
 
 
-	protected function aclAccess( $zone, $arg = -1 ) {
-		if ( $arg >= 0 && !array_key_exists($arg, $this->m_arrActionArgs) ) {
+	protected function aclAccess( $zone, $args = [] ) {
+		$objects = [];
+		try {
+			foreach ( $args as $arg ) {
+				$objects[] = $this->aclObject($arg);
+			}
+		}
+		catch ( \InvalidArgumentException $ex ) {
+			$arg = $ex->getMessage();
 			throw new \InvalidArgumentException("Can't check access '{$zone}' for hook '{$this->m_szHook}', because missing arg '{$arg}'");
 		}
 
-		$object = $arg >= 0 ? $this->m_arrActionArgs[$arg] : null;
-		return User::access($zone, $object);
+		return User::access($zone, ...$objects);
 
 	} // END aclAccess() */
+
+
+	protected function aclObject( $arg ) {
+		if ( !array_key_exists($arg, $this->m_arrActionArgs) ) {
+			throw new \InvalidArgumentException("Can't check access '{$zone}' for hook '{$this->m_szHook}', because missing arg '{$arg}'");
+		}
+
+		return $this->m_arrActionArgs[$arg];
+
+	} // END aclObject() */
 
 
 	protected function aclLoginRedirect( $zone ) {
