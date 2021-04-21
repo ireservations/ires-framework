@@ -11,4 +11,8 @@ class TextResponse extends Response {
 		echo $this->data;
 	}
 
+	public function __toString() {
+		return $this->data;
+	}
+
 }

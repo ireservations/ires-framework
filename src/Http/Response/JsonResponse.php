@@ -36,4 +36,8 @@ class JsonResponse extends Response {
 		}
 	}
 
+	public function __toString() {
+		return json_encode($this->data);
+	}
+
 }
