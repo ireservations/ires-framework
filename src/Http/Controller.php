@@ -51,6 +51,7 @@ abstract class Controller {
 	);
 	public static $mapping = array();
 
+	protected $m_szFullRequestUri		= '';
 	protected $m_szRequestUri			= '';
 	protected $m_szRequestUriMatch		= '';
 	protected $m_arrHooks				= [];
@@ -178,14 +179,15 @@ abstract class Controller {
 	 */
 	public static function run( $f_szFullRequestUri, array $f_arrRunOptions = [] ) {
 		if ( '/' == $f_szFullRequestUri ) {
-			// Index
-			return new HomeController('/', [], $f_arrRunOptions);
+			$application = new HomeController('/', [], $f_arrRunOptions);
+		}
+		else {
+			list($szControllerClass, $szActionPath, $arrControllerArgs) = static::findController($f_szFullRequestUri);
+
+			$application = new $szControllerClass($szActionPath, $arrControllerArgs, $f_arrRunOptions);
 		}
 
-		list($szControllerClass, $szActionPath, $arrControllerArgs) = static::findController($f_szFullRequestUri);
-
-		$application = new $szControllerClass($szActionPath, $arrControllerArgs, $f_arrRunOptions);
-
+		$application->m_szFullRequestUri = '/' . trim($f_szFullRequestUri, '/');
 		return $application;
 	}
 
@@ -501,13 +503,13 @@ abstract class Controller {
 
 	protected function notFound( $message = '' ) {
 		$message and $message = " - $message";
-		throw new NotFoundException(Request::uri() . $message);
+		throw new NotFoundException($this->m_szFullRequestUri . $message);
 	}
 
 
 	protected function accessDenied( $message = '' ) {
 		$message and $message = " - $message";
-		throw new AccessDeniedException(Request::uri() . $message);
+		throw new AccessDeniedException($this->m_szFullRequestUri . $message);
 	}
 
 
