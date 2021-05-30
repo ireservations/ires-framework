@@ -73,7 +73,12 @@ class db_mysqli extends db_generic {
 
 		if ( $this->log_queries ) {
 			$_time = round((microtime(1) - $_start) * 1000);
-			$this->queries[] = '[' . $_time . ' ms] ' . self::prettifyQuery($query);
+			if ( $this->query_logger ) {
+				call_user_func($this->query_logger, $query, $_time);
+			}
+			else {
+				$this->queries[] = '[' . $_time . ' ms] ' . self::prettifyQuery($query);
+			}
 		}
 
 		if ( false === $r ) {

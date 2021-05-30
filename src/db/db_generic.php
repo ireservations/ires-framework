@@ -10,6 +10,7 @@ abstract class db_generic {
 
 	public $num_queries = 0;
 	public $log_queries = false;
+	public $query_logger;
 	public $queries = array();
 	public $times = [];
 
