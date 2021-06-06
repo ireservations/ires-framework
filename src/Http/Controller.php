@@ -389,21 +389,45 @@ abstract class Controller {
 	/**
 	 *
 	 */
-	function handleResult( $result ) {
+	function wrapResult( $result, $strict = false ) : Response {
+		if ( $result instanceof Response ) {
+			return $result;
+		}
+
 		if ( is_scalar($result) ) {
 			$result = trim($result);
-			$result = strlen($result) && $result[0] == '<' ? new HtmlResponse($result) : new TextResponse($result);
+			if ( strlen($result) && $result[0] == '<' ) {
+				return new HtmlResponse($result);
+			}
+
+			return new TextResponse($result, $strict ? 400 : 200);
 		}
 
 		if ( is_array($result) ) {
-			$result = new JsonResponse($result);
+			return new JsonResponse($result);
 		}
 
-		if ( $result instanceof Response ) {
-			$result->printHeaders();
-			$result->printContent();
-			exit;
-		}
+		return new TextResponse("Invalid Controller result (1)", 500);
+	}
+
+
+	/**
+	 *
+	 */
+	function wrapResultStrict( $result ) {
+		return $this->wrapResult($result, true);
+	}
+
+
+	/**
+	 *
+	 */
+	function handleResult( $result ) {
+		$result = $this->wrapResult($result);
+
+		$result->printHeaders();
+		$result->printContent();
+		exit;
 	}
 
 
