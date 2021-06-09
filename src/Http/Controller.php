@@ -394,7 +394,7 @@ abstract class Controller {
 			return $result;
 		}
 
-		if ( is_scalar($result) ) {
+		if ( is_null($result) || is_scalar($result) ) {
 			$result = trim($result);
 			if ( strlen($result) && $result[0] == '<' ) {
 				return new HtmlResponse($result);
