@@ -227,14 +227,6 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	 *
 	 */
 	public function &__get( $name ) {
-		if ( !$this->_loaded ) {
-			$this->refresh();
-		}
-
-		if ( property_exists($this, $name) ) {
-			return $this->$name;
-		}
-
 		if ( $this->gotGot($name) ) {
 			return $this->_got[$name];
 		}
@@ -247,6 +239,14 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		if ( $this->existsGetter($name) ) {
 			$this->_got[$name] = $this->resolveGetter($name);
 			return $this->_got[$name];
+		}
+
+		if ( !$this->_loaded ) {
+			$this->refresh();
+
+			if ( property_exists($this, $name) ) {
+				return $this->$name;
+			}
 		}
 
 		$this->_got[$name] = null;
