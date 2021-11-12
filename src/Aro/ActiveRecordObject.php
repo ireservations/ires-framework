@@ -341,8 +341,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 			$conditions = static::$_db->stringifyConditions($conditions);
 		}
 
-		$query = static::getQuery($conditions);
-		return static::byQueryIterator($query, $args, $options);
+		return new ActiveRecordFetchGenerator(get_called_class(), $conditions, $args, $options);
 	}
 
 
