@@ -49,7 +49,7 @@ class ToFirst extends ActiveRecordRelationship {
 
 		foreach ( $targets as $target ) {
 			$fk = $target->$foreignColumn;
-			if ( $fk && isset($objects[$fk]) ) {
+			if ( $fk && isset($objects[$fk]) && !$objects[$fk]->$name ) {
 				$objects[$fk]->setGot($name, $target);
 			}
 		}
