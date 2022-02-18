@@ -5,6 +5,7 @@
         "nikic/php-parser": "^4.2"
     },
     "require": {
+        "php": ">=7.4.15",
         "doctrine/annotations": "^1.6",
         "smarty/smarty": "^4.1",
         "symfony/console": "^4.1",
