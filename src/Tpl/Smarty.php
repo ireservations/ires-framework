@@ -36,7 +36,7 @@ class Smarty extends BaseSmarty {
 		};
 
 		// Errors & debug
-		$this->error_reporting = error_reporting();
+		$this->muteUndefinedOrNullWarnings();
 	}
 
 }

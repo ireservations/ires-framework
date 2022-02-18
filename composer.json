@@ -6,7 +6,7 @@
     },
     "require": {
         "doctrine/annotations": "^1.6",
-        "smarty/smarty": "^3.1",
+        "smarty/smarty": "^4.1",
         "symfony/console": "^4.1",
         "symfony/var-dumper": "^4.0"
     },

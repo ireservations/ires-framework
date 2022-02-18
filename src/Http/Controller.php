@@ -28,6 +28,7 @@ use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\AnnotationRegistry;
 use ReflectionClass;
 use ReflectionMethod;
+use ReflectionNamedType;
 use RuntimeException;
 use Throwable;
 use User;
@@ -285,7 +286,10 @@ abstract class Controller {
 					// Objectize ARO params
 					foreach ( $method->getParameters() AS $i => $param ) {
 						$required = !$param->isOptional();
-						$type = $param->getClass();
+						$type = null;
+						if ( ($tp = $param->getType()) instanceof ReflectionNamedType ) {
+							$type = $tp->getName();
+						}
 
 						// Missing arg
 						if ( !isset($arrArgs[$i]) ) {
@@ -302,7 +306,7 @@ abstract class Controller {
 							$id = $arrArgs[$i];
 
 							// Object loaded
-							if ( $object = call_user_func([$type->name, $loader], $id) ) {
+							if ( $object = call_user_func([$type, $loader], $id) ) {
 								$arrArgs[$i] = $object;
 							}
 							// Object not found
