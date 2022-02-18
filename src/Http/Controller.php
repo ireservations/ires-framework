@@ -302,7 +302,7 @@ abstract class Controller {
 						}
 						// Load arg
 						elseif ( $type ) {
-							$loader = @$loaders[$i] ?: 'load';
+							$loader = ($loaders[$i] ?? null) ?: 'load';
 							$id = $arrArgs[$i];
 
 							// Object loaded
