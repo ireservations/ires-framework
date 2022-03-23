@@ -9,7 +9,7 @@ class db_mysqli extends db_generic {
 
 	public function __construct( $f_szHost, $f_szUser = '', $f_szPass = '', $f_szDb = '' ) {
 		$this->db_name = $f_szDb;
-		$this->dbCon = new mysqli($f_szHost, $f_szUser, $f_szPass, $f_szDb);
+		$this->dbCon = @new mysqli($f_szHost, $f_szUser, $f_szPass, $f_szDb);
 		if ( !$this->dbCon->connect_errno ) {
 			list($names, $collate) = explode(':', defined('SQL_CHARSET') ? SQL_CHARSET : 'utf8:utf8_general_ci');
 			$this->dbCon->query("SET NAMES '$names' COLLATE '$collate'");

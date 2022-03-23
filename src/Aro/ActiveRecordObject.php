@@ -12,6 +12,7 @@ use Generator;
  * @property int $id
  * @property db_generic $db
  */
+#[\AllowDynamicProperties]
 abstract class ActiveRecordObject implements ArrayAccess {
 
 	use ValidatesTokens;
