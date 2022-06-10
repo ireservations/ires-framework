@@ -648,17 +648,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	 *
 	 */
 	public function init() {
-		$this->initId();
 		$this->initCache();
-	}
-
-	/**
-	 *
-	 */
-	public function initId() {
-		if ( isset($this->id) ) {
-			$this->id = (int) $this->id;
-		}
 	}
 
 	/**

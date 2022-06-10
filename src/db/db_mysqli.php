@@ -11,6 +11,9 @@ class db_mysqli extends db_generic {
 		$this->db_name = $f_szDb;
 		$this->dbCon = @new mysqli($f_szHost, $f_szUser, $f_szPass, $f_szDb);
 		if ( !$this->dbCon->connect_errno ) {
+			// $this->dbCon->options(MYSQLI_SET_CHARSET_NAME, 'utf8');
+			$this->dbCon->options(MYSQLI_OPT_INT_AND_FLOAT_NATIVE, true);
+
 			list($names, $collate) = explode(':', defined('SQL_CHARSET') ? SQL_CHARSET : 'utf8:utf8_general_ci');
 			$this->dbCon->query("SET NAMES '$names' COLLATE '$collate'");
 		}
