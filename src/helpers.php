@@ -223,7 +223,7 @@ function kprint_r( $data ) {
 }
 
 function watchdog( $name, $data, $logFile = 'watchdog' ) {
-	$header = Request::host() . Request::fullUri() . ' - ' . $name . ' - ' . date('Y-m-d H:i:s') . ' - ' . (Request::ip() ?: 'local');
+	$header = Request::host() . Request::fullUri() . ' - ' . $name . ' - ' . date('Y-m-d H:i:s') . ' - ' . User::idOr(0) . ' - ' . (Request::ip() ?: 'local') . ' - ' . ($_SERVER['UNIQUE_ID'] ?? $_SERVER['REQUEST_TIME_FLOAT'] ?? '?');
 	return @file_put_contents(
 		RUNTIME_LOGS . "/$logFile.log",
 		"$header:\n" . trim(print_r($data, 1)) . "\n\n\n\n\n\n\n\n\n",
