@@ -24,7 +24,8 @@ trait KnowsWeekdays {
 		}
 
 		$curFull = array_map('strtolower', self::getWeekdays());
-		$curShort = array_map('strtolower', self::getWeekdays(trans('WEEKDAY_SHORT_LENGTH')));
+		$length = (int) t('WEEKDAY_SHORT_LENGTH') ?: 3;
+		$curShort = array_map('strtolower', self::getWeekdays($length));
 
 		if ( in_array($weekday, $curFull) ) {
 			$weekday = $enFull[ array_search($weekday, $curFull) ];
