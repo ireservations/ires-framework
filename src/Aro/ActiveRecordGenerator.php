@@ -12,10 +12,12 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 	protected $args = [];
 
 	protected $afterFetch;
+	protected $eagerLoad = [];
 	protected $pageSize;
+	protected $limit;
 
 	protected $page = 0;
-	protected $count;
+	protected $total;
 
 	public function __construct( string $aroClass, string $query, array $args = [], array $options = [] ) {
 		$this->aroClass = $aroClass;
@@ -28,9 +30,11 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 
 	protected function setOptions( array $options ) {
 		if ( isset($options['page_size']) ) $this->pager($options['page_size']);
-		elseif ( isset($options['limit']) ) $this->pager($options['limit']);
 
-		if ( isset($options['after_fetch']) ) $this->with($options['after_fetch']);
+		if ( isset($options['limit']) ) $this->limit($options['limit']);
+
+		if ( isset($options['eager_load']) ) $this->eagerLoad($options['eager_load']);
+		elseif ( isset($options['after_fetch']) ) $this->afterFetch($options['after_fetch']);
 
 		return $this;
 	}
@@ -40,7 +44,22 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 		return $this;
 	}
 
-	public function with( callable $callable ) {
+	public function limit( ?int $num ) {
+		$this->limit = $num;
+		return $this;
+	}
+
+	public function eagerLoad( array $relationships ) {
+		$this->eagerLoad = $relationships;
+		return $this;
+	}
+
+	public function eagerLoadMore( array $relationships ) {
+		$this->eagerLoad = array_merge($this->eagerLoad, $relationships);
+		return $this;
+	}
+
+	public function afterFetch( callable $callable ) {
 		$this->afterFetch = $callable;
 		return $this;
 	}
@@ -48,10 +67,21 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 	protected function fetch() {
 		$offset = $this->page++ * $this->pageSize;
 		$objects = call_user_func([$this->aroClass, 'byQuery'], "$this->query LIMIT $this->pageSize OFFSET $offset", $this->args);
-		if ( $this->afterFetch && count($objects) ) {
+		$this->fetched($objects);
+		return $objects;
+	}
+
+	protected function fetched( array $objects ) {
+		if ( !count($objects) ) return;
+
+		if ( count($this->eagerLoad) ) {
+			$object = reset($objects);
+			call_user_func([get_class($object), 'eagers'], $objects, $this->eagerLoad);
+		}
+
+		if ( $this->afterFetch ) {
 			call_user_func($this->afterFetch, $objects);
 		}
-		return $objects;
 	}
 
 	public function get( int $length ) {
@@ -68,9 +98,15 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 
 	public function getIterator() {
 		$objects = $this->fetch();
+		$done = 0;
 		while ( count($objects) ) {
 			foreach ( $objects as $object ) {
 				yield $object;
+				$done++;
+
+				if ( $this->limit && $done >= $this->limit ) {
+					return;
+				}
 			}
 
 			$objects = count($objects) == $this->pageSize ? $this->fetch() : [];
@@ -78,13 +114,20 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 	}
 
 	public function count() {
-		if ( $this->count === null ) {
-			$db = call_user_func([$this->aroClass, 'getDbObject']);
-			$query = $db->prepAndReplaceQMarks($this->query, $this->args);
-			$this->count = $db->count_rows($query);
-		}
+		return $this->limit ? min($this->limit, $this->total()) : $this->total();
+	}
 
-		return $this->count;
+	public function total() {
+		if ( $this->total === null ) {
+			$this->total = $this->getTotal();
+		}
+		return $this->total;
+	}
+
+	protected function getTotal() {
+		$db = call_user_func([$this->aroClass, 'getDbObject']);
+		$query = $db->prepAndReplaceQMarks($this->query, $this->args);
+		return $db->count_rows($query);
 	}
 
 }
