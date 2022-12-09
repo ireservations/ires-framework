@@ -110,7 +110,7 @@ function array_pluck( $array, $column, $indexColumn = null ) {
 }
 
 function filter_xss( $html ) {
-	$allowed = 'p,br,hr,h1,h2,h3,h4,ul,ol,li,strong,b,em,i,u,strike,span,blockquote,a,img,table,tr,td,th,iframe,select,option,code';
+	$allowed = 'p,br,hr,h1,h2,h3,h4,ul,ol,li,strong,b,em,i,u,strike,span,blockquote,a,img,table,tr,td,th,iframe,select,option,code,pre';
 	$html = strip_tags($html, '<' . implode('><', explode(',', $allowed)) . '>');
 	$html = preg_replace('#\s(on[a-z]+\s*=)#i', ' x$1', $html);
 	return $html;
