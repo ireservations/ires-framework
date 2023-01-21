@@ -2,27 +2,14 @@
 
 namespace Framework\Annotations;
 
-/**
- * @Annotation
- */
+use Attribute;
+
+#[Attribute(Attribute::IS_REPEATABLE | Attribute::TARGET_ALL)]
 class Access {
-	const NO_ARG = -1;
 
-	/** @var string */
-	public $value;
+	public function __construct(
+		public string $name,
+		public ?int $arg = null,
+	) {}
 
-	/** @var int */
-	public $arg = self::NO_ARG;
-
-	/** @var int[] */
-	public $args = [];
-
-	/** @return int[] */
-	public function getArgs() {
-		if ($this->arg != self::NO_ARG) {
-			return [$this->arg];
-		}
-
-		return $this->args;
-	}
 }

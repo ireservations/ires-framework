@@ -16,7 +16,7 @@ class HtmlString implements JsonSerializable {
 		return (string) $this->string;
 	}
 
-	public function jsonSerialize() {
+	public function jsonSerialize() : mixed {
 		return (string) $this->string;
 	}
 }

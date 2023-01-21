@@ -2,36 +2,33 @@
 
 namespace Framework\Http;
 
-use db_foreignkey_exception;
+use App\Controllers\HomeController;
+use App\Services\Aro\AppActiveRecordObject;
+use App\Services\Tpl\AppTemplate;
 use Framework\Annotations\Access;
 use Framework\Annotations\Loaders;
-use App\Controllers\HomeController;
-use Framework\Annotations\MultipleIndexedReader;
 use Framework\Aro\ActiveRecordException;
-use App\Services\Aro\AppActiveRecordObject;
 use Framework\Http\Exception\AccessDeniedException;
 use Framework\Http\Exception\InvalidInputException;
 use Framework\Http\Exception\InvalidTokenException;
+use Framework\Http\Exception\NotFoundException;
 use Framework\Http\Exception\ResponseException;
 use Framework\Http\Exception\ServerException;
 use Framework\Http\Response\HtmlResponse;
 use Framework\Http\Response\JsonResponse;
-use Framework\Http\Exception\NotFoundException;
 use Framework\Http\Response\RedirectResponse;
 use Framework\Http\Response\Response;
 use Framework\Http\Response\TextResponse;
-use App\Services\Tpl\AppTemplate;
-use db_duplicate_exception;
-use db_exception;
-use db_generic;
-use Doctrine\Common\Annotations\AnnotationReader;
-use Doctrine\Common\Annotations\AnnotationRegistry;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
 use RuntimeException;
 use Throwable;
 use User;
+use db_duplicate_exception;
+use db_exception;
+use db_foreignkey_exception;
+use db_generic;
 
 abstract class Controller {
 
@@ -63,8 +60,8 @@ abstract class Controller {
 	protected $m_arrActionArgs			= [];
 	protected $m_arrRunOptions			= [];
 	protected $m_arrOptions				= [];
-	protected $m_arrCtrlrAnnotations	= [];
-	protected $m_arrActionAnnotations	= [];
+	protected $m_objCtrlrReflection		= null;
+	protected $m_objActionReflection	= null;
 
 	protected $disallowIframes		= true;
 	protected $cspReporting			= true;
@@ -90,30 +87,6 @@ abstract class Controller {
 
 		return $uri;
 	}
-
-	/**
-	 *
-	 */
-	protected function annotateController( ReflectionClass $reflectee ) {
-		AnnotationRegistry::registerLoader('class_exists');
-
-		$reader = new MultipleIndexedReader(new AnnotationReader());
-		$annotations = $reader->getClassAnnotations($reflectee);
-		return $annotations;
-	}
-
-
-	/**
-	 *
-	 */
-	protected function annotateAction( ReflectionMethod $reflectee ) {
-		AnnotationRegistry::registerLoader('class_exists');
-
-		$reader = new MultipleIndexedReader(new AnnotationReader());
-		$annotations = $reader->getMethodAnnotations($reflectee);
-		return $annotations;
-	}
-
 
 	static protected function matchControllerRoute( $route, $uri, &$params, &$path ) {
 		$params = [];
@@ -174,6 +147,11 @@ abstract class Controller {
 	}
 
 
+	static public function getControllerMapper() : ControllerMapper {
+		return new ControllerMapper();
+	}
+
+
 	/**
 	 * 1 .   T h e   M V C   s t a r t e r
 	 * @return static
@@ -199,18 +177,12 @@ abstract class Controller {
 	static public function findController( $uri ) {
 		$uri = trim($uri, '/');
 
-		foreach ( array_reverse(static::$mapping) as $prefix => $class) {
-			if ( self::matchControllerRoute($prefix, $uri, $params, $path) ) {
-				if ( $class = static::getControllerClass($class) ) {
-					return [$class, $path, $params];
-				}
-			}
-		}
+		$mapping = static::getControllerMapper()->getMapping();
 
-		$components = explode('/', $uri);
-		$class = array_shift($components);
-		if ( $class = static::getControllerClass($class) ) {
-			return [$class, trim(implode('/', $components), '/'), []];
+		foreach ( $mapping as $prefix => $class ) {
+			if ( self::matchControllerRoute($prefix, $uri, $params, $path) ) {
+				return [$class, $path, $params];
+			}
 		}
 
 		return [HomeController::class, $uri, []];
@@ -275,9 +247,8 @@ abstract class Controller {
 					$this->m_arrOptions = $hook->args;
 					$this->m_szRequestUriMatch = $hook->path;
 
-					$method = new ReflectionMethod($this, $hook->action);
-					$this->m_arrActionAnnotations = $annotations = $this->annotateAction($method);
-					$loaders = isset($annotations[Loaders::class]) ? $annotations[Loaders::class][0]->value : [];
+					$this->m_objActionReflection = $method = new ReflectionMethod($this, $hook->action);
+					$loaders = count($attributes = $method->getAttributes(Loaders::class)) ? $attributes[0]->newInstance()->methods : [];
 
 					$this->m_szHook = $hook->action;
 
@@ -287,7 +258,7 @@ abstract class Controller {
 					foreach ( $method->getParameters() AS $i => $param ) {
 						$required = !$param->isOptional();
 						$type = null;
-						if ( ($tp = $param->getType()) instanceof ReflectionNamedType ) {
+						if ( ($tp = $param->getType()) instanceof ReflectionNamedType && !$tp->isBuiltin() ) {
 							$type = $tp->getName();
 						}
 
@@ -302,7 +273,7 @@ abstract class Controller {
 						}
 						// Load arg
 						elseif ( $type ) {
-							$loader = ($loaders[$i] ?? null) ?: 'load';
+							$loader = $loaders[$i] ?? 'load';
 							$id = $arrArgs[$i];
 
 							// Object loaded
@@ -319,8 +290,8 @@ abstract class Controller {
 					$this->m_arrActionArgs = $arrArgs;
 
 					// Action access
-					if ( isset($annotations[Access::class]) ) {
-						$this->aclAlterAnnotations($hook->action, $annotations[Access::class]);
+					if ( count($attributes = $method->getAttributes(Access::class)) ) {
+						$this->aclAlterAnnotations($hook->action, $attributes);
 					}
 
 					$this->__start();
@@ -356,6 +327,10 @@ abstract class Controller {
 		return $path;
 	}
 
+
+	public function getRawHooks() : array {
+		return $this->m_arrHooks;
+	}
 
 	/**
 	 * @return Hook[]
@@ -399,7 +374,7 @@ abstract class Controller {
 		}
 
 		if ( is_null($result) || is_scalar($result) ) {
-			$result = trim($result);
+			$result = trim($result ?? '');
 			if ( strlen($result) && $result[0] == '<' ) {
 				return new HtmlResponse($result);
 			}
@@ -559,12 +534,13 @@ abstract class Controller {
 			$this->tpl = AppTemplate::instance();
 		}
 
-		$this->m_arrCtrlrAnnotations = $this->annotateController(new ReflectionClass(get_class($this)));
+		$this->m_objCtrlrReflection = new ReflectionClass(get_class($this));
 
 		// Controller access
-		if ( isset($this->m_arrCtrlrAnnotations[Access::class]) ) {
-			foreach ( $this->m_arrCtrlrAnnotations[Access::class] as $access ) {
-				$this->aclAdd(ltrim($access->value, '+-'));
+		if ( count($attributes = $this->m_objCtrlrReflection->getAttributes(Access::class)) ) {
+			foreach ( $attributes as $attribute ) {
+				$access = $attribute->newInstance();
+				$this->aclAdd(ltrim($access->name, '+-'));
 			}
 		}
 

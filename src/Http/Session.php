@@ -12,10 +12,6 @@ class Session {
 	}
 
 	static function init() {
-		ini_set('session.cookie_path', '/');
-		ini_set('session.cookie_httponly', 1);
-		ini_set('session.cookie_secure', Request::https());
-
 		static::exists() && static::start();
 	}
 
@@ -107,10 +103,12 @@ class Session {
 			// $_COOKIE[$name] = $value;
 		}
 
-		$domain = null;
-		$httponly = true;
-		$secure = Request::https();
-		return setcookie($name, $value, $expire, '/', $domain, $secure, $httponly);
+		return setcookie($name, $value, [
+			'expires' => $expire,
+			'path' => '/',
+			'secure' => Request::https(),
+			'httponly' => true,
+		]);
 	}
 
 }

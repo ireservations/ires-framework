@@ -79,18 +79,18 @@ abstract class Response implements ArrayAccess {
 
 	abstract public function printContent();
 
-	public function offsetExists( $name ) {
+	public function offsetExists( $name ) : bool {
 		return isset($this->data[$name]);
 	}
 
-	public function offsetGet( $name ) {
+	public function offsetGet( $name ) : mixed {
 		return $this->data[$name];
 	}
 
-	public function offsetSet( $name, $value ) {
+	public function offsetSet( $name, $value ) : void {
 	}
 
-	public function offsetUnset( $name ) {
+	public function offsetUnset( $name ) : void {
 	}
 
 }

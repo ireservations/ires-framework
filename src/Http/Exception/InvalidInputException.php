@@ -9,7 +9,7 @@ class InvalidInputException extends Exception {
 	protected $invalid = [];
 
 	public function __construct( $message, array $invalid = [] ) {
-		parent::__construct($message);
+		parent::__construct($message ?? '');
 
 		$this->invalid = $invalid;
 	}

@@ -15,6 +15,8 @@ abstract class Multilang {
 	}
 
 	public function translate( $key, array $options = [] ) {
+		if ( !$key ) return '';
+
 		$ucfirst = $options['ucfirst'] ?? true;
 		$language = $options['language'] ?? $this->language_id;
 

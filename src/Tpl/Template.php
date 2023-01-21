@@ -35,7 +35,7 @@ class Template {
 		$this->beforeDisplay();
 
 		$szContent = trim($this->fetch($template));
-		$szTitle = trim($this->smarty->getTemplateVars('title'));
+		$szTitle = trim($this->smarty->getTemplateVars('title') ?? '');
 
 		$this->smarty->assign('szDocumentTitle', strip_tags($szTitle));
 		$this->smarty->assign('szDocumentBody', $szContent);

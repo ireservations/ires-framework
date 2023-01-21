@@ -5,6 +5,7 @@ namespace Framework\Http;
 use Framework\Annotations\Access;
 use Framework\Http\Exception\AccessDeniedException;
 use Framework\Http\Exception\RedirectException;
+use InvalidArgumentException;
 use User;
 
 trait ChecksAccess {
@@ -16,20 +17,17 @@ trait ChecksAccess {
 	/** @return Hook[] */
 	abstract protected function getHooks();
 
-	protected function aclAdd( $zones, $hooks = null, $args = [] ) {
+	protected function aclAdd( $zones, $hooks = null, ?int $arg = null ) {
 		if ( $hooks === null ) {
-			$hooks = [];
-			foreach ( $this->getHooks() as $hook ) {
-				$hooks[] = $hook->action;
-			}
+			$hooks = array_column($this->getHooks(), 'action');
 		}
 
 		$zones = (array) $zones;
-		$hooks = is_array($hooks) ? array_unique($hooks) : [$hooks];
+		$hooks = (array) $hooks;
 
 		foreach ( $hooks AS $hook ) {
 			foreach ( $zones AS $zone ) {
-				$this->acl[$hook][$zone] = $args;
+				$this->acl[$hook][$zone] = $arg;
 			}
 		}
 
@@ -49,13 +47,10 @@ trait ChecksAccess {
 	} // END aclRemove() */
 
 
-	/**
-	 * @param Access[] $accesses
-	 */
-	protected function aclAlterAnnotations( $hook, array $accesses ) {
-		foreach ( $accesses AS $access ) {
-			$zone = $access->value;
-			$args = $access->getArgs();
+	protected function aclAlterAnnotations( string $hook, array $attributes ) {
+		foreach ( $attributes AS $attribute ) {
+			$access = $attribute->newInstance();
+			$zone = $access->name;
 
 			// aclRemove
 			if ( $zone[0] == '-' ) {
@@ -63,11 +58,11 @@ trait ChecksAccess {
 			}
 			// aclAdd
 			else {
-				$this->aclAdd(ltrim($zone, '+-'), $hook, $args);
+				$this->aclAdd(ltrim($zone, '+-'), $hook, $access->arg);
 			}
 		}
 
-	} // END aclAlter() */
+	} // END aclAlterAnnotations() */
 
 
 	protected function aclCheck() {
@@ -76,8 +71,8 @@ trait ChecksAccess {
 		}
 
 		if ( !empty($this->acl[$this->m_szHook]) ) {
-			foreach ( $this->acl[$this->m_szHook] AS $zone => $args ) {
-				if ( !$this->aclAccess($zone, $args) ) {
+			foreach ( $this->acl[$this->m_szHook] AS $zone => $arg ) {
+				if ( !$this->aclAccess($zone, $arg) ) {
 					return $this->aclExit($zone);
 				}
 			}
@@ -98,26 +93,27 @@ trait ChecksAccess {
 	} // END aclExit() */
 
 
-	protected function aclAccess( $zone, $args = [] ) {
-		$objects = [];
-		try {
-			foreach ( $args as $arg ) {
-				$objects[] = $this->aclObject($arg);
-			}
-		}
-		catch ( \InvalidArgumentException $ex ) {
-			$arg = $ex->getMessage();
-			throw new \InvalidArgumentException("Can't check access '{$zone}' for hook '{$this->m_szHook}', because missing arg '{$arg}'");
+	protected function aclAccess( string $zone, ?int $arg = null ) {
+		if ( $arg === null ) {
+			return User::access($zone);
 		}
 
-		return User::access($zone, ...$objects);
+		try {
+			$object = $this->aclObject($arg);
+		}
+		catch ( InvalidArgumentException $ex ) {
+			$arg = $ex->getMessage();
+			throw new InvalidArgumentException(sprintf("Can't check access '%s' for hook '%s', because missing arg '%d'", $zone, $this->m_szHook, $arg));
+		}
+
+		return User::access($zone, $object);
 
 	} // END aclAccess() */
 
 
 	protected function aclObject( $arg ) {
 		if ( !array_key_exists($arg, $this->m_arrActionArgs) ) {
-			throw new \InvalidArgumentException("Can't check access '{$zone}' for hook '{$this->m_szHook}', because missing arg '{$arg}'");
+			throw new InvalidArgumentException($arg);
 		}
 
 		return $this->m_arrActionArgs[$arg];

@@ -2,10 +2,13 @@
 
 namespace Framework\Annotations;
 
-/**
- * @Annotation
- */
+use Attribute;
+
+#[Attribute(Attribute::TARGET_ALL)]
 class Loaders {
-	/** @var string[] */
-	public $value;
+
+	public function __construct(
+		public array $methods,
+	) {}
+
 }

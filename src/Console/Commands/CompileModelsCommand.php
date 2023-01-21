@@ -18,7 +18,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class CompileModelsCommand extends Command {
 
 	protected function configure() {
-		$this->setName('ide:models');
+		$this->setName('compile:models');
 		$this->addOption('class', null, InputOption::VALUE_OPTIONAL);
 	}
 

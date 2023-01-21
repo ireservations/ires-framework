@@ -4,6 +4,7 @@ namespace Framework\Aro;
 
 use Countable;
 use IteratorAggregate;
+use Traversable;
 
 class ActiveRecordGenerator implements IteratorAggregate, Countable {
 
@@ -28,7 +29,7 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 		$this->setOptions($options);
 	}
 
-	protected function setOptions( array $options ) {
+	protected function setOptions( array $options ) : static {
 		if ( isset($options['page_size']) ) $this->pager($options['page_size']);
 
 		if ( isset($options['limit']) ) $this->limit($options['limit']);
@@ -39,39 +40,39 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 		return $this;
 	}
 
-	public function pager( int $num ) {
+	public function pager( int $num ) : static {
 		$this->pageSize = $num;
 		return $this;
 	}
 
-	public function limit( ?int $num ) {
+	public function limit( ?int $num ) : static {
 		$this->limit = $num;
 		return $this;
 	}
 
-	public function eagerLoad( array $relationships ) {
+	public function eagerLoad( array $relationships ) : static {
 		$this->eagerLoad = $relationships;
 		return $this;
 	}
 
-	public function eagerLoadMore( array $relationships ) {
+	public function eagerLoadMore( array $relationships ) : static {
 		$this->eagerLoad = array_merge($this->eagerLoad, $relationships);
 		return $this;
 	}
 
-	public function afterFetch( callable $callable ) {
+	public function afterFetch( callable $callable ) : static {
 		$this->afterFetch = $callable;
 		return $this;
 	}
 
-	protected function fetch() {
+	protected function fetch() : array {
 		$offset = $this->page++ * $this->pageSize;
 		$objects = call_user_func([$this->aroClass, 'byQuery'], "$this->query LIMIT $this->pageSize OFFSET $offset", $this->args);
 		$this->fetched($objects);
 		return $objects;
 	}
 
-	protected function fetched( array $objects ) {
+	protected function fetched( array $objects ) : void {
 		if ( !count($objects) ) return;
 
 		if ( count($this->eagerLoad) ) {
@@ -84,7 +85,7 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 		}
 	}
 
-	public function get( int $length ) {
+	public function get( int $length ) : array {
 		$objects = [];
 		foreach ( $this as $object ) {
 			$objects[] = $object;
@@ -96,7 +97,7 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 		return $objects;
 	}
 
-	public function getIterator() {
+	public function getIterator() : Traversable {
 		$objects = $this->fetch();
 		$done = 0;
 		while ( count($objects) ) {
@@ -113,18 +114,18 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 		}
 	}
 
-	public function count() {
+	public function count() : int {
 		return $this->limit ? min($this->limit, $this->total()) : $this->total();
 	}
 
-	public function total() {
+	public function total() : int {
 		if ( $this->total === null ) {
 			$this->total = $this->getTotal();
 		}
 		return $this->total;
 	}
 
-	protected function getTotal() {
+	protected function getTotal() : int {
 		$db = call_user_func([$this->aroClass, 'getDbObject']);
 		$query = $db->prepAndReplaceQMarks($this->query, $this->args);
 		return $db->count_rows($query);

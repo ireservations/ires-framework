@@ -829,7 +829,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 * ArrayAccess -- isset(obj[x])
 	 */
-	public function offsetExists($offset) {
+	public function offsetExists($offset) : bool {
 		return property_exists($this, $offset) || $this->existsMagicProperty($offset);
 	}
 
@@ -837,7 +837,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 * ArrayAccess -- obj[x]
 	 */
-	public function offsetGet($offset) {
+	public function offsetGet($offset) : mixed {
 		self::$allowArrayAccess or debug_exit('ArrayAccess ' . get_class($this) . '->' . $offset);
 
 		return $this->$offset;
@@ -847,7 +847,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 * ArrayAccess -- obj[x] = y
 	 */
-	public function offsetSet($offset, $value) {
+	public function offsetSet($offset, $value) : void {
 		self::$allowArrayAccess or debug_exit('ArrayAccess ' . get_class($this) . '->' . $offset);
 
 		$this->$offset = $value;
@@ -857,7 +857,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 * ArrayAccess -- unset(obj[x])
 	 */
-	public function offsetUnset($offset) {
+	public function offsetUnset($offset) : void {
 		self::$allowArrayAccess or debug_exit('ArrayAccess ' . get_class($this) . '->' . $offset);
 
 		unset($this->$offset);
