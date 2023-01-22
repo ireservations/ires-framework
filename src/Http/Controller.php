@@ -4,6 +4,7 @@ namespace Framework\Http;
 
 use App\Controllers\HomeController;
 use App\Services\Aro\AppActiveRecordObject;
+use App\Services\Http\AppController;
 use App\Services\Tpl\AppTemplate;
 use Framework\Annotations\Access;
 use Framework\Annotations\Loaders;
@@ -47,38 +48,34 @@ abstract class Controller {
 		'#' => 'INT',
 		'*' => 'STRING',
 	);
-	public static $mapping = array();
 
-	protected $m_szFullRequestUri		= '';
-	protected $m_szRequestUri			= '';
-	protected $m_szRequestUriMatch		= '';
+	protected $fullRequestUri = '';
+	protected $actionPath = '';
+	protected $actionMatch = '';
 	protected $m_arrHooks				= [];
 	/** @var Hook[] */
 	protected $m_arrHookObjects			= [];
-	protected $m_szHook					= '';
-	protected $m_arrCtrlrArgs			= [];
-	protected $m_arrActionArgs			= [];
-	protected $m_arrRunOptions			= [];
-	protected $m_arrOptions				= [];
-	protected $m_objCtrlrReflection		= null;
-	protected $m_objActionReflection	= null;
+	protected string $actionCallback = '';
+	protected array $ctrlrArgs = [];
+	protected array $actionArgs = [];
+	protected array $runOptions = [];
+	protected array $actionOptions = [];
+	protected ?ReflectionClass $ctrlrReflection = null;
+	protected ?ReflectionMethod $actionReflection = null;
 
-	protected $disallowIframes		= true;
-	protected $cspReporting			= true;
-	protected $localCsfr			= true;
-	protected $assignTemplate		= true;
+	protected bool $disallowIframes = true;
+	protected bool $cspReporting = true;
+	protected bool $localCsfr = true;
+	protected bool $assignTemplate = true;
 
-	/** @var AppTemplate */
-	protected $tpl;
-
-	/** @var db_generic */
-	protected $db;
+	protected ?AppTemplate $tpl = null;
+	protected db_generic $db;
 
 
 	/**
 	 * E v a l u a t e s   a n d   r e t u r n s   t h e   r e q u e s t   U R I
 	 */
-	public static function getRequestUri() {
+	public static function getRequestUri() : string {
 		$uri = Request::uri();
 
 		if ( function_exists('apache_setenv') ) {
@@ -88,7 +85,7 @@ abstract class Controller {
 		return $uri;
 	}
 
-	static protected function matchControllerRoute( $route, $uri, &$params, &$path ) {
+	static protected function matchControllerRoute( string $route, string $uri, ?array &$params, ?string &$path ) : bool {
 		$params = [];
 
 		$route = strtr($route, static::$action_path_wildcard_aliases);
@@ -103,11 +100,13 @@ abstract class Controller {
 
 			$params = self::matchParams($route, $params);
 
-			return $params !== false;
+			return $params !== null;
 		}
+
+		return false;
 	}
 
-	static protected function matchActionRoute( $route, $uri, &$params ) {
+	static protected function matchActionRoute( string $route, string $uri, ?array &$params ) : bool {
 		$params = [];
 
 		$route = strtr($route, static::$action_path_wildcard_aliases);
@@ -120,11 +119,13 @@ abstract class Controller {
 
 			$params = self::matchParams($route, $params);
 
-			return $params !== false;
+			return $params !== null;
 		}
+
+		return false;
 	}
 
-	static protected function matchParams( $route, array $params ) {
+	static protected function matchParams( string $route, array $params ) : ?array {
 		preg_match_all('#(' . implode('|', array_keys(static::$action_path_wildcards)) . ')#', $route, $matches);
 		$wildcards = $matches[1];
 
@@ -134,15 +135,15 @@ abstract class Controller {
 
 		foreach ( $params as $i => $param ) {
 			$params[$i] = static::matchParam($wildcards[$i], $param);
-			if ( $params[$i] === false ) {
-				return false;
+			if ( $params[$i] === null ) {
+				return null;
 			}
 		}
 
 		return $params;
 	}
 
-	static protected function matchParam( $type, $value ) {
+	static protected function matchParam( string $type, string $value ) : ?string {
 		return $value;
 	}
 
@@ -156,17 +157,17 @@ abstract class Controller {
 	 * 1 .   T h e   M V C   s t a r t e r
 	 * @return static
 	 */
-	public static function run( $f_szFullRequestUri, array $f_arrRunOptions = [] ) {
-		if ( '/' == $f_szFullRequestUri ) {
-			$application = new HomeController('/', [], $f_arrRunOptions);
+	public static function makeApplication( string $fullUri, array $runOptions = [] ) : AppController {
+		if ( '/' == $fullUri ) {
+			$application = new HomeController('/', [], $runOptions);
 		}
 		else {
-			list($szControllerClass, $szActionPath, $arrControllerArgs) = static::findController($f_szFullRequestUri);
+			list($ctrlrClass, $actionPath, $ctrlrArgs) = static::findController($fullUri);
 
-			$application = new $szControllerClass($szActionPath, $arrControllerArgs, $f_arrRunOptions);
+			$application = new $ctrlrClass($actionPath, $ctrlrArgs, $runOptions);
 		}
 
-		$application->m_szFullRequestUri = '/' . trim($f_szFullRequestUri, '/');
+		$application->fullRequestUri = '/' . trim($fullUri, '/');
 		return $application;
 	}
 
@@ -174,7 +175,7 @@ abstract class Controller {
 	/**
 	 *
 	 */
-	static public function findController( $uri ) {
+	static protected function findController( string $uri ) : array {
 		$uri = trim($uri, '/');
 
 		$mapping = static::getControllerMapper()->getMapping();
@@ -190,44 +191,49 @@ abstract class Controller {
 
 
 	/**
-	 *
-	 */
-	static public function getControllerClass( $controller ) {
-		$components = explode('/', $controller);
-
-		$class = array_pop($components);
-		$class = ucfirst($class) . 'Controller';
-		$components[] = $class;
-
-		$fullClass = 'App\\Controllers\\' . implode('\\', $components);
-
-		if ( class_exists($fullClass, true) ) {
-			return $fullClass;
-		}
-	}
-
-
-	/**
 	 * 2 .   L o a d   t h e   a p p l i c a t i o n
 	 */
-	public function __construct( $f_szUri, array $f_arrCtrlrArgs = [], array $f_arrRunOptions = [] ) {
-		$this->m_arrRunOptions = $f_arrRunOptions + [];
+	public function __construct( string $actionPath, array $ctrlrArgs = [], array $runOptions = [] ) {
+		$this->runOptions = $runOptions + [];
 
-		$this->m_arrCtrlrArgs = $f_arrCtrlrArgs;
+		$this->ctrlrArgs = $ctrlrArgs;
 
-		$this->m_szRequestUri = '/' . trim($f_szUri, '/');
+		$this->actionPath = '/' . trim($actionPath, '/');
 	}
 
 
 	/**
 	 * 3a .   R u n   t h e   a p p l i c a t i o n
 	 */
-	public function exec( $f_bAutoExec = true ) {
+
+	public function executeToExit() : void {
+		$response = $this->executeToResponse();
+
+		$response->printHeaders();
+		$response->printContent();
+		exit;
+	}
+
+	public function executeToResponse(bool $strict = false) : Response {
 		try {
-			return $this->execPrivate($f_bAutoExec);
+			$result = $this->executeAction();
+			return $this->resultToResponse($result, true);
 		}
 		catch ( Throwable $ex ) {
-			return $this->handleException($ex, $f_bAutoExec);
+			return $this->exceptionToResponse($ex);
+		}
+	}
+
+	public function executeToStrictResponse() : Response {
+		return $this->executeToResponse(true);
+	}
+
+	public function executeToResult() : mixed {
+		try {
+			return $this->executeAction();
+		}
+		catch ( Throwable $ex ) {
+			return $ex;
 		}
 	}
 
@@ -235,22 +241,21 @@ abstract class Controller {
 	/**
 	 * 3b .   R u n   t h e   a p p l i c a t i o n
 	 */
-	protected function execPrivate( $f_bAutoExec = true ) {
+	protected function executeAction() : mixed {
 		$this->__preload();
 
-		$requestUri = $this->m_szRequestUri;
 		$requestMethods = ['all', strtolower(Request::method())];
 
 		foreach ( $this->getHooks() AS $hook ) {
-			if ( self::matchActionRoute($hook->path, $requestUri, $arrArgs) ) {
+			if ( self::matchActionRoute($hook->path, $this->actionPath, $actionArgs) ) {
 				if ( in_array($hook->method, $requestMethods) && is_callable(array($this, $hook->action)) ) {
-					$this->m_arrOptions = $hook->args;
-					$this->m_szRequestUriMatch = $hook->path;
+					$this->actionOptions = $hook->args;
+					$this->actionMatch = $hook->path;
 
-					$this->m_objActionReflection = $method = new ReflectionMethod($this, $hook->action);
+					$this->actionReflection = $method = new ReflectionMethod($this, $hook->action);
 					$loaders = count($attributes = $method->getAttributes(Loaders::class)) ? $attributes[0]->newInstance()->methods : [];
 
-					$this->m_szHook = $hook->action;
+					$this->actionCallback = $hook->action;
 
 					$this->__loaded();
 
@@ -263,22 +268,22 @@ abstract class Controller {
 						}
 
 						// Missing arg
-						if ( !isset($arrArgs[$i]) ) {
+						if ( !isset($actionArgs[$i]) ) {
 							if ( $required ) {
 								break 2;
 							}
 							else {
-								$arrArgs[$i] = $param->getDefaultValue();
+								$actionArgs[$i] = $param->getDefaultValue();
 							}
 						}
 						// Load arg
 						elseif ( $type ) {
 							$loader = $loaders[$i] ?? 'load';
-							$id = $arrArgs[$i];
+							$id = $actionArgs[$i];
 
 							// Object loaded
 							if ( $object = call_user_func([$type, $loader], $id) ) {
-								$arrArgs[$i] = $object;
+								$actionArgs[$i] = $object;
 							}
 							// Object not found
 							else {
@@ -287,7 +292,7 @@ abstract class Controller {
 						}
 					}
 
-					$this->m_arrActionArgs = $arrArgs;
+					$this->actionArgs = $actionArgs;
 
 					// Action access
 					if ( count($attributes = $method->getAttributes(Access::class)) ) {
@@ -296,46 +301,19 @@ abstract class Controller {
 
 					$this->__start();
 
-					$r = call_user_func_array(array($this, $hook->action), $this->m_arrActionArgs);
-					if ( $f_bAutoExec ) {
-						$this->handleResult($r);
-					}
-
-					return $r;
+					return call_user_func_array(array($this, $hook->action), $this->actionArgs);
 				}
 			}
 		}
 
-		// Not found
-		$r = $this->notFound();
-		if ( $f_bAutoExec ) {
-			$this->handleResult($r);
-		}
-
-		return $r;
+		return $this->notFound();
 	}
 
-
-	/**
-	 *
-	 */
-	protected function makeHookRegex( $path ) {
-		$path = strtr($path, self::$action_path_wildcard_aliases);
-		$path = strtr($path, self::$action_path_wildcards);
-		$path = '#^' . $path . '$#';
-
-		return $path;
-	}
-
-
-	public function getRawHooks() : array {
-		return $this->m_arrHooks;
-	}
 
 	/**
 	 * @return Hook[]
 	 */
-	public function getHooks() {
+	public function getHooks() : array {
 		if ( count($this->m_arrHookObjects) ) {
 			return $this->m_arrHookObjects;
 		}
@@ -365,10 +343,7 @@ abstract class Controller {
 	}
 
 
-	/**
-	 *
-	 */
-	function wrapResult( $result, $strict = false ) : Response {
+	protected function resultToResponse( mixed $result, bool $strict = false ) : Response {
 		if ( $result instanceof Response ) {
 			return $result;
 		}
@@ -393,29 +368,7 @@ abstract class Controller {
 	/**
 	 *
 	 */
-	function wrapResultStrict( $result ) {
-		return $this->wrapResult($result, true);
-	}
-
-
-	/**
-	 *
-	 */
-	function handleResult( $result ) {
-		$result = $this->wrapResult($result);
-
-		$result->printHeaders();
-		$result->printContent();
-		exit;
-	}
-
-
-	/**
-	 *
-	 */
-	protected function handleException( Throwable $ex, $f_bAutoExec = true ) {
-		$response = null;
-
+	protected function exceptionToResponse( Throwable $ex ) : Response {
 		if ( $ex instanceof db_duplicate_exception ) {
 			// debug_exit("db_duplicate_exception: " . escapehtml($ex->getMessage()), $ex);
 
@@ -437,11 +390,7 @@ abstract class Controller {
 		}
 
 		elseif ( $ex instanceof InvalidInputException ) {
-			$message = $ex->getMessage() ?: trans('INVALID_PARAMETERS');
-			if ( $ex->getInvalids() ) {
-				$message .= ":\n\n* " . implode("\n* ", $ex->getInvalids());
-			}
-
+			$message = $ex->getFullMessage();
 			$response = new TextResponse($message, 400);
 		}
 
@@ -476,47 +425,36 @@ abstract class Controller {
 			$response = new TextResponse("SERVER ERROR: " . $ex->getMessage(), 500);
 		}
 
-		elseif ( $ex instanceof Throwable ) {
+		else {
 			debug_exit("Uncaught " . get_class($ex) . ": " . escapehtml($ex->getMessage()) . ' on ' . basename($ex->getFile()) . ':' . $ex->getLine(), $ex);
 
 			$response = new TextResponse("UNKNOWN ERROR: " . $ex->getMessage(), 500);
 		}
 
-		if ( $response ) {
-			return $f_bAutoExec ? $this->handleResult($response) : $response;
-		}
-
-		throw $ex;
+		return $response;
 	}
 
 
-	/**
-	 *
-	 */
-	protected function redirect( $location, array $options = [] ) {
+	protected function redirect( string $location, array $options = [] ) : RedirectResponse {
 		return new RedirectResponse($location, $options);
 	}
 
-
-	/** @return static */
-	protected function forward( $uri ) {
-		return static::run($uri);
+	protected function forward( string $uri ) : AppController {
+		return static::makeApplication($uri);
 	}
 
 
-	protected function notFound( $message = '' ) {
+	protected function notFound( string $message = '' ) : void {
 		$message and $message = " - $message";
-		throw new NotFoundException($this->m_szFullRequestUri . $message);
+		throw new NotFoundException($this->fullRequestUri . $message);
 	}
 
-
-	protected function accessDenied( $message = '' ) {
+	protected function accessDenied( string $message = '' ) : void {
 		$message and $message = " - $message";
-		throw new AccessDeniedException($this->m_szFullRequestUri . $message);
+		throw new AccessDeniedException($this->fullRequestUri . $message);
 	}
 
-
-	protected function invalidInput( $error ) {
+	protected function invalidInput( mixed $error ) : void {
 		if ( is_array($error) ) {
 			throw new InvalidInputException(null, $error);
 		}
@@ -525,19 +463,17 @@ abstract class Controller {
 	}
 
 
-	protected function __preload() {
-		/** @var db_generic $db */
-		global $db;
-		$this->db = $db;
+	protected function __preload() : void {
+		$this->db = $GLOBALS['db'];
 
 		if ( $this->assignTemplate ) {
 			$this->tpl = AppTemplate::instance();
 		}
 
-		$this->m_objCtrlrReflection = new ReflectionClass(get_class($this));
+		$this->ctrlrReflection = new ReflectionClass(get_class($this));
 
 		// Controller access
-		if ( count($attributes = $this->m_objCtrlrReflection->getAttributes(Access::class)) ) {
+		if ( count($attributes = $this->ctrlrReflection->getAttributes(Access::class)) ) {
 			foreach ( $attributes as $attribute ) {
 				$access = $attribute->newInstance();
 				$this->aclAdd(ltrim($access->name, '+-'));
@@ -550,11 +486,11 @@ abstract class Controller {
 	}
 
 
-	protected function __loaded() {
+	protected function __loaded() : void {
 	}
 
 
-	protected function __start() {
+	protected function __start() : void {
 		$this->aclCheck();
 
 		if ( $this->tpl ) {
@@ -574,9 +510,9 @@ abstract class Controller {
 	/**
 	 *
 	 */
-	protected function requireControllerArgOfType( $n, $type ) {
+	protected function requireControllerArgOfType( int $n, string $aroType ) : AppActiveRecordObject {
 		/** @var AppActiveRecordObject $type */
-		if ( empty($this->m_arrCtrlrArgs[$n]) || !($object = $type::find($this->m_arrCtrlrArgs[$n])) ) {
+		if ( empty($this->ctrlrArgs[$n]) || !($object = $aroType::find($this->ctrlrArgs[$n])) ) {
 			return $this->notFound();
 		}
 
@@ -585,7 +521,7 @@ abstract class Controller {
 
 
 
-	protected function checkToken( AppActiveRecordObject $source ) {
+	protected function checkToken( AppActiveRecordObject $source ) : void {
 		if ( !empty($_REQUEST['_token']) ) {
 			if ( $source->checkToken($_REQUEST['_token']) ) {
 				return;
@@ -595,13 +531,13 @@ abstract class Controller {
 		$this->failToken($source);
 	}
 
-	protected function failToken( AppActiveRecordObject $source ) {
+	protected function failToken( AppActiveRecordObject $source ) : void {
 		$name = (new ReflectionClass($source))->getShortName();
 		throw new InvalidTokenException($name);
 	}
 
 
-	protected function checkSessionToken( $name ) {
+	protected function checkSessionToken( string $name ) : void {
 		if ( !empty($_REQUEST['_token']) ) {
 			if ( User::checkToken($name, $_REQUEST['_token']) ) {
 				return;
@@ -611,7 +547,7 @@ abstract class Controller {
 		$this->failSessionToken($name);
 	}
 
-	protected function failSessionToken( $name ) {
+	protected function failSessionToken( string $name ) : void {
 		throw new InvalidTokenException($name);
 	}
 
@@ -620,7 +556,7 @@ abstract class Controller {
 	/**
 	 * Helper: API: Easy error JSON response
 	 */
-	public function jsonError( $error, array $data = [] ) {
+	public function jsonError( string $error, array $data = [] ) : JsonResponse {
 		$data += ['error' => $error];
 		return new JsonResponse($data, 400);
 	}
@@ -629,7 +565,7 @@ abstract class Controller {
 	/**
 	 * Helper: API: facilicate easy PHP -> JSON(P)
 	 */
-	public function json( array $data, $jsonp = false ) {
+	public function json( array $data, bool $jsonp = false ) : JsonResponse {
 		$jsonp = $jsonp && isset($_GET['jsonp']) ? $_GET['jsonp'] : '';
 		return new JsonResponse($data, null, $jsonp);
 	}

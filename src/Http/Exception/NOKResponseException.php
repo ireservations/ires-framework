@@ -11,8 +11,14 @@ class NOKResponseException extends Exception {
 		if ( $error instanceof TextResponse ) {
 			$error = $error->data;
 		}
+		elseif ( $error instanceof InvalidInputException ) {
+			$error = $error->getFullMessage();
+		}
+		elseif ( $error instanceof Exception ) {
+			$error = $error->getMessage();
+		}
 
-		if ( !is_scalar($error) ) {
+		if ( !$error || !is_scalar($error) ) {
 			$error = 'Unknown error';
 		}
 

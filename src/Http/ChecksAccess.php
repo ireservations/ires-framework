@@ -10,12 +10,12 @@ use User;
 
 trait ChecksAccess {
 
-	protected $m_szHook = '';
+	protected string $actionCallback = '';
 
 	protected $acl = [];
 
 	/** @return Hook[] */
-	abstract protected function getHooks();
+	abstract protected function getHooks() : array;
 
 	protected function aclAdd( $zones, $hooks = null, ?int $arg = null ) {
 		if ( $hooks === null ) {
@@ -66,12 +66,12 @@ trait ChecksAccess {
 
 
 	protected function aclCheck() {
-		if ( ($this->m_arrRunOptions['access'] ?? true) === false ) {
+		if ( ($this->runOptions['access'] ?? true) === false ) {
 			return;
 		}
 
-		if ( !empty($this->acl[$this->m_szHook]) ) {
-			foreach ( $this->acl[$this->m_szHook] AS $zone => $arg ) {
+		if ( !empty($this->acl[$this->actionCallback]) ) {
+			foreach ( $this->acl[$this->actionCallback] AS $zone => $arg ) {
 				if ( !$this->aclAccess($zone, $arg) ) {
 					return $this->aclExit($zone);
 				}
@@ -103,7 +103,7 @@ trait ChecksAccess {
 		}
 		catch ( InvalidArgumentException $ex ) {
 			$arg = $ex->getMessage();
-			throw new InvalidArgumentException(sprintf("Can't check access '%s' for hook '%s', because missing arg '%d'", $zone, $this->m_szHook, $arg));
+			throw new InvalidArgumentException(sprintf("Can't check access '%s' for hook '%s', because missing arg '%d'", $zone, $this->actionCallback, $arg));
 		}
 
 		return User::access($zone, $object);
@@ -112,11 +112,11 @@ trait ChecksAccess {
 
 
 	protected function aclObject( $arg ) {
-		if ( !array_key_exists($arg, $this->m_arrActionArgs) ) {
+		if ( !array_key_exists($arg, $this->actionArgs) ) {
 			throw new InvalidArgumentException($arg);
 		}
 
-		return $this->m_arrActionArgs[$arg];
+		return $this->actionArgs[$arg];
 
 	} // END aclObject() */
 

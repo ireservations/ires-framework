@@ -21,7 +21,7 @@ trait ValidatesTokens {
 		return sha1(self::$salt . ':' . $name . ':' . $rand);
 	}
 
-	public static function checkToken( $name, $token ) {
+	public static function checkToken( string $name, ?string $token ) : bool {
 		for ( $rand=1; $rand<=TOKEN_RANDOM_SIZE; $rand++ ) {
 			if ( $token === self::makeToken($name, $rand) ) {
 				return true;

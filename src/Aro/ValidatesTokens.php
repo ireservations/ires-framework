@@ -12,7 +12,7 @@ trait ValidatesTokens {
 		return $this->getPKValue();
 	}
 
-	public function checkToken( $token ) {
+	public function checkToken( ?string $token ) : bool {
 		return User::checkToken(get_class($this) . ':' . $this->tokenId(), $token);
 	}
 
