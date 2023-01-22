@@ -18,26 +18,11 @@ class ListActionsCommand extends Command {
 	}
 
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		// Find controllers
-		$files = $this->getAllPhpFiles(PROJECT_LOGIC);
-
-		$prefix = realpath(PROJECT_LOGIC) . '/';
+		$mapper = AppController::getControllerMapper();
+		$controllers = $mapper->createMapping();
 
 		$actions = $specialActions = $exceptions = [];
-		foreach ( $files as $file ) {
-			$controllerFile = substr($file, strlen($prefix));
-			$controller = preg_replace('#Controller\.php$#', '', $controllerFile);
-			if ( $controller == $controllerFile ) continue;
-
-			$controller = str_replace('\\', '/', $controller);
-			if ( !($ctrlrPath = array_search(strtolower($controller), AppController::$mapping)) ) {
-				$ctrlrPath = strtolower($controller);
-			}
-			$class = 'App\\Controllers\\' . str_replace('/', '\\', $controller) . 'Controller';
-			if ( $ctrlrPath === 'home' ) {
-				$ctrlrPath = '';
-			}
-
+		foreach ( $controllers as $ctrlrPath => $class ) {
 			try {
 				/** @var AppController $ctrlr */
 				$ctrlr = new $class('');
