@@ -113,6 +113,15 @@ class Request {
 		return !empty($_REQUEST['ajax']) || !empty($_SERVER['HTTP_AJAX']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') == 'xmlhttprequest';
 	}
 
+	static function csrfReferrer() : bool {
+		if ( self::method() !== 'POST' ) return true;
+
+		$referrerHost = parse_url(self::referrer(), PHP_URL_HOST);
+		$nowHost = self::host();
+
+		return $referrerHost && $nowHost && $referrerHost === $nowHost;
+	}
+
 
 	static function cli() {
 		return php_sapi_name() === 'cli';

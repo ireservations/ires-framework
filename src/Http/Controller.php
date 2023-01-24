@@ -65,7 +65,6 @@ abstract class Controller {
 
 	protected bool $disallowIframes = true;
 	protected bool $cspReporting = true;
-	protected bool $localCsfr = true;
 	protected bool $assignTemplate = true;
 
 	protected ?AppTemplate $tpl = null;
@@ -455,10 +454,6 @@ abstract class Controller {
 
 		// Controller access
 		$this->aclAlterController($this->ctrlrReflection);
-
-		if ( $this->localCsfr ) {
-			$this->aclAdd('LOCAL_CSRF');
-		}
 	}
 
 

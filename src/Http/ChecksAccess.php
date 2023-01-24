@@ -13,6 +13,8 @@ use ReflectionMethod;
 
 trait ChecksAccess {
 
+	protected array $acl = [];
+
 	protected function aclAdd( string|array $zones, null|string|array $hooks = null, ?int $arg = null ) : void {
 		if ( $hooks === null ) {
 			$hooks = array_column($this->getHooks(), 'action');
