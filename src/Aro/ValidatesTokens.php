@@ -2,7 +2,7 @@
 
 namespace Framework\Aro;
 
-use User;
+use App\Services\Session\User;
 
 trait ValidatesTokens {
 

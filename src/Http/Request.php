@@ -2,7 +2,7 @@
 
 namespace Framework\Http;
 
-use User;
+use App\Services\Session\User;
 
 class Request {
 

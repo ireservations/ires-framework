@@ -2,7 +2,7 @@
 
 namespace Framework\Http\Response;
 
-use User;
+use App\Services\Session\User;
 
 class RedirectResponse extends Response {
 

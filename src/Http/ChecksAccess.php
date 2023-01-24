@@ -3,11 +3,11 @@
 namespace Framework\Http;
 
 use App\Services\Aro\AppActiveRecordObject;
+use App\Services\Session\User;
 use Framework\Annotations\Access;
 use Framework\Http\Exception\AccessDeniedException;
 use Framework\Http\Exception\RedirectException;
 use InvalidArgumentException;
-use User;
 
 trait ChecksAccess {
 

@@ -6,6 +6,8 @@ use App\Services\Aro\AppActiveRecordObject;
 
 trait DoesntKnowUser {
 
+	static public ?UserInterface $user = null;
+
 	abstract static public function access( string $zone, AppActiveRecordObject $object = null ) : bool;
 
 	abstract static public function logincheck() : bool;
