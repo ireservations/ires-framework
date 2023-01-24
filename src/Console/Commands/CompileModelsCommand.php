@@ -230,6 +230,8 @@ class CompileModelsCommand extends Command {
 		$this->write($modelsNamespaceOutput);
 
 		echo "\nDone\n";
+
+		return 0;
 	}
 
 	protected function write( $code ) {

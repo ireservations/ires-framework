@@ -71,11 +71,13 @@ class MigrateCommand extends Command {
 global $db;
 
 $db->query("
-	
+
 ");
 		') . "\n\n");
 
 		echo "$filename\n";
+
+		return 0;
 	}
 
 	protected function executeStatus( InputInterface $input, OutputInterface $output ) {
@@ -88,6 +90,8 @@ $db->query("
 
 		echo "$todo migrations TO DO.\n";
 		echo "$done migrations done.\n";
+
+		return 0;
 	}
 
 	protected function executeUndo( InputInterface $input, OutputInterface $output ) {
@@ -110,6 +114,8 @@ $db->query("
 
 		$this->saveUndone($undo);
 		echo "Migration `$undo` undone.\n";
+
+		return 0;
 	}
 
 	protected function executeTable( InputInterface $input, OutputInterface $output ) {
@@ -129,6 +135,8 @@ $db->query("
 		}
 
 		$this->createTable();
+
+		return 0;
 	}
 
 	protected function executeMigrate( InputInterface $input, OutputInterface $output ) {
@@ -184,6 +192,8 @@ $db->query("
 		echo number_format(microtime(1) - $_start, 2, '.', '') . ' s';
 
 		echo "\n\n";
+
+		return 0;
 	}
 
 	protected function saveDone( $migration ) {

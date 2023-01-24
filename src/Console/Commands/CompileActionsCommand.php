@@ -18,6 +18,8 @@ class CompileActionsCommand extends Command {
 		$mapping = $mapper->createMapping();
 		$mapper->saveMapping($mapping);
 		echo "Controller mapping saved.\n";
+
+		return 0;
 	}
 
 }

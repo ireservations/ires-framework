@@ -23,6 +23,8 @@ class VersionCommand extends Command {
 		$this->saveVersion($newVersion);
 
 		$output->writeln($newVersion);
+
+		return 0;
 	}
 
 	protected function getCurrentVersion() {

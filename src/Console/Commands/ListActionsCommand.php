@@ -84,6 +84,8 @@ class ListActionsCommand extends Command {
 			echo "\nerrors:\n";
 			print_r($exceptions);
 		}
+
+		return 0;
 	}
 
 }

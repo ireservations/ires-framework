@@ -18,6 +18,8 @@ class MaintenanceModeCommand extends Command {
 
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		call_user_func([$this, $this->up ? 'bringUp' : 'bringDown'], $output);
+
+		return 0;
 	}
 
 	protected function bringUp( OutputInterface $output ) {
