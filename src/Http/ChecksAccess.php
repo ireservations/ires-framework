@@ -2,6 +2,7 @@
 
 namespace Framework\Http;
 
+use App\Services\Aro\AppActiveRecordObject;
 use Framework\Annotations\Access;
 use Framework\Http\Exception\AccessDeniedException;
 use Framework\Http\Exception\RedirectException;
@@ -10,14 +11,7 @@ use User;
 
 trait ChecksAccess {
 
-	protected string $actionCallback = '';
-
-	protected $acl = [];
-
-	/** @return Hook[] */
-	abstract protected function getHooks() : array;
-
-	protected function aclAdd( $zones, $hooks = null, ?int $arg = null ) {
+	protected function aclAdd( string|array $zones, null|string|array $hooks = null, ?int $arg = null ) : void {
 		if ( $hooks === null ) {
 			$hooks = array_column($this->getHooks(), 'action');
 		}
@@ -30,24 +24,20 @@ trait ChecksAccess {
 				$this->acl[$hook][$zone] = $arg;
 			}
 		}
+	}
 
-	} // END aclAdd() */
-
-
-	protected function aclRemove( $zones, $hooks ) {
-		$zones = (array)$zones;
-		$hooks = (array)$hooks;
+	protected function aclRemove( string|array $zones, string|array $hooks ) : void {
+		$zones = (array) $zones;
+		$hooks = (array) $hooks;
 
 		foreach ( $hooks AS $hook ) {
 			foreach ( $zones AS $zone ) {
 				unset($this->acl[$hook][$zone]);
 			}
 		}
+	}
 
-	} // END aclRemove() */
-
-
-	protected function aclAlterAnnotations( string $hook, array $attributes ) {
+	protected function aclAlterAnnotations( string $hook, array $attributes ) : void {
 		foreach ( $attributes AS $attribute ) {
 			$access = $attribute->newInstance();
 			$zone = $access->name;
@@ -61,39 +51,32 @@ trait ChecksAccess {
 				$this->aclAdd(ltrim($zone, '+-'), $hook, $access->arg);
 			}
 		}
+	}
 
-	} // END aclAlterAnnotations() */
-
-
-	protected function aclCheck() {
+	protected function aclCheck() : void {
 		if ( ($this->runOptions['access'] ?? true) === false ) {
 			return;
 		}
 
-		if ( !empty($this->acl[$this->actionCallback]) ) {
-			foreach ( $this->acl[$this->actionCallback] AS $zone => $arg ) {
-				if ( !$this->aclAccess($zone, $arg) ) {
-					return $this->aclExit($zone);
-				}
+		foreach ( $this->acl[$this->actionCallback] ?? [] AS $zone => $arg ) {
+			if ( !$this->aclAccess($zone, $arg) ) {
+				$this->aclExit($zone);
 			}
 		}
+	}
 
-	} // END aclCheck() */
-
-
-	protected function aclExit( $zone ) {
+	protected function aclExit( string $zone ) : void {
 		if ( !User::logincheck() ) {
 			if ( !Request::ajax() && Request::method() != 'POST' ) {
-				return $this->aclLoginRedirect($zone);
+				$this->aclLoginRedirect($zone);
+				return;
 			}
 		}
 
 		throw new AccessDeniedException($zone);
+	}
 
-	} // END aclExit() */
-
-
-	protected function aclAccess( string $zone, ?int $arg = null ) {
+	protected function aclAccess( string $zone, ?int $arg = null ) : bool {
 		if ( $arg === null ) {
 			return User::access($zone);
 		}
@@ -107,23 +90,18 @@ trait ChecksAccess {
 		}
 
 		return User::access($zone, $object);
+	}
 
-	} // END aclAccess() */
-
-
-	protected function aclObject( $arg ) {
+	protected function aclObject( int $arg ) : AppActiveRecordObject {
 		if ( !array_key_exists($arg, $this->actionArgs) ) {
 			throw new InvalidArgumentException($arg);
 		}
 
 		return $this->actionArgs[$arg];
+	}
 
-	} // END aclObject() */
-
-
-	protected function aclLoginRedirect( $zone ) {
+	protected function aclLoginRedirect( string $zone ) : void {
 		throw new RedirectException(User::loginRedirectUrl($zone));
-
-	} // END aclLoginRedirect() */
+	}
 
 }

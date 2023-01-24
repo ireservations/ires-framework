@@ -410,11 +410,11 @@ abstract class Controller {
 		}
 
 		elseif ( $ex instanceof NotFoundException ) {
-			$response = new TextResponse("Not found: " . $ex->getMessage(), 404);
+			$response = new TextResponse($ex->getFullMessage(), 404);
 		}
 
 		elseif ( $ex instanceof AccessDeniedException ) {
-			$response = new TextResponse("Access denied: " . $ex->getMessage(), 403);
+			$response = new TextResponse($ex->getFullMessage(), 403);
 		}
 
 		elseif ( $ex instanceof RuntimeException ) {

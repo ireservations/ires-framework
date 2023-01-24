@@ -4,7 +4,7 @@ namespace Framework\Http\Exception;
 
 use Exception;
 
-class InvalidInputException extends Exception {
+class InvalidInputException extends Exception implements FullMessageException {
 
 	protected array $invalid = [];
 

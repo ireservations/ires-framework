@@ -2,33 +2,20 @@
 
 namespace Framework\User;
 
-const TOKEN_RANDOM_SIZE = 10;
-
 trait ValidatesTokens {
 
-	/** @var string */
-	public static $salt;
+	public static ?string $salt = null;
 
-	public static function makeToken( $name, $rand = null ) {
+	public static function makeToken( ?string $name ) : string {
 		if ( !self::$salt ) {
 			return sha1(rand());
 		}
 
-		if ( $rand === null ) {
-			$rand = rand(1, TOKEN_RANDOM_SIZE);
-		}
-
-		return sha1(self::$salt . ':' . $name . ':' . $rand);
+		return sha1(self::$salt . ':' . $name);
 	}
 
 	public static function checkToken( string $name, ?string $token ) : bool {
-		for ( $rand=1; $rand<=TOKEN_RANDOM_SIZE; $rand++ ) {
-			if ( $token === self::makeToken($name, $rand) ) {
-				return true;
-			}
-		}
-
-		return false;
+		return $token !== null && $token === self::makeToken($name);
 	}
 
 }

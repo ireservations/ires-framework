@@ -7,10 +7,13 @@ use InvalidArgumentException;
 
 trait KnowsUser {
 
-	/** @var AppActiveRecordObject */
-	public static $user;
+	static public ?UserInterface $user = null;
 
-	public static function id() {
+	abstract static public function access( string $zone, AppActiveRecordObject $object = null ) : bool;
+
+	abstract static public function logincheck() : bool;
+
+	static public function id() : int {
 		if ( !self::$user ) {
 			throw new InvalidArgumentException("Login required");
 		}
@@ -18,11 +21,11 @@ trait KnowsUser {
 		return self::$user->id;
 	}
 
-	public static function idOr( $alt ) {
+	static public function idOr( ?int $alt ) : ?int {
 		return self::$user ? self::$user->id : $alt;
 	}
 
-	public static function idOrFail( $alt ) {
+	static public function idOrFail( ?int $alt ) {
 		if ( $uid = self::idOr($alt) ) {
 			return $uid;
 		}

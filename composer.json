@@ -1,6 +1,7 @@
 {
     "name": "rdx/framework",
-    "description": "",
+    "description": "IRES framework",
+    "license": "proprietary",
     "require-dev": {
         "nikic/php-parser": "^4.2"
     },

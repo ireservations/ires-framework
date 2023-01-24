@@ -11,7 +11,7 @@ class NOKResponseException extends Exception {
 		if ( $error instanceof TextResponse ) {
 			$error = $error->data;
 		}
-		elseif ( $error instanceof InvalidInputException ) {
+		elseif ( $error instanceof FullMessageException ) {
 			$error = $error->getFullMessage();
 		}
 		elseif ( $error instanceof Exception ) {
