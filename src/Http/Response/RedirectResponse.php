@@ -6,7 +6,7 @@ use App\Services\Session\User;
 
 class RedirectResponse extends Response {
 
-	public function __construct( $url, array $options = [] ) {
+	public function __construct( string $url, array $options = [] ) {
 		parent::__construct(User::redirectUrl($url, $options));
 	}
 
