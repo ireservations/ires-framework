@@ -224,7 +224,7 @@ class CompileModelsCommand extends Command {
 		// $explicitGetters and print_r($explicitGetters);
 
 		if ( $onlyClass ) {
-			return;
+			return 0;
 		}
 
 		$this->write($modelsNamespaceOutput);
