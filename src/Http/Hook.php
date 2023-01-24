@@ -4,36 +4,23 @@ namespace Framework\Http;
 
 class Hook {
 
-	public $path = '';
-	public $method = 'all';
-	public $action = '';
-	public $args = [];
+	public function __construct(
+		public string $path,
+		public string $action,
+		public string $method = 'all',
+		public array $args = [],
+	) {}
 
-	public function __construct( $path ) {
-		$this->path = $path;
+	static public function withArgs( string $path, string $action, array $args ) {
+		return new static($path, $action, args: $args);
 	}
 
-	static public function withArgs( $path, $action, array $args ) {
-		$hook = new static($path);
-		$hook->action = $action;
-		$hook->args = $args;
-
-		return $hook;
+	static public function withMethod( string $path, string $action, string $method ) {
+		return new static($path, $action, method: strtolower($method));
 	}
 
-	static public function withMethod( $path, $method, $action ) {
-		$hook = new static($path);
-		$hook->method = strtolower($method);
-		$hook->action = $action;
-
-		return $hook;
-	}
-
-	static public function withAction( $path, $action ) {
-		$hook = new static($path);
-		$hook->action = $action;
-
-		return $hook;
+	static public function withAction( string $path, string $action ) {
+		return new static($path, $action);
 	}
 
 }

@@ -38,23 +38,23 @@ abstract class Controller {
 	const INPUT_OPTIONAL = false;
 	const INPUT_REQUIRED = true;
 
-	public static $action_path_wildcards = array(
+	static public array $action_path_wildcards = array(
 		'INT'		=> '(\d+)',
 		'STRING'	=> '([^/]+)',
 		'DATE'		=> '(today|tomorrow|\d\d\d\d\-\d\d?\-\d\d?)',
 		'TIME'		=> '(\d\d?:\d\d)',
 	);
-	public static $action_path_wildcard_aliases = array(
+	static public array $action_path_wildcard_aliases = array(
 		'#' => 'INT',
 		'*' => 'STRING',
 	);
 
-	protected $fullRequestUri = '';
-	protected $actionPath = '';
-	protected $actionMatch = '';
+	protected string $fullRequestUri = '';
+	protected string $actionPath = '';
+	protected string $actionMatch = '';
 	protected $m_arrHooks				= [];
 	/** @var Hook[] */
-	protected $m_arrHookObjects			= [];
+	protected array $hookObjects;
 	protected string $actionCallback = '';
 	protected array $ctrlrArgs = [];
 	protected array $actionArgs = [];
@@ -147,6 +147,10 @@ abstract class Controller {
 		return $value;
 	}
 
+
+	public function getActionMapper() : ActionMapper {
+		return new ActionMapper($this);
+	}
 
 	static public function getControllerMapper() : ControllerMapper {
 		return new ControllerMapper();
@@ -310,36 +314,15 @@ abstract class Controller {
 	}
 
 
+	public function getRawHooks() : array {
+		return $this->m_arrHooks;
+	}
+
 	/**
 	 * @return Hook[]
 	 */
 	public function getHooks() : array {
-		if ( count($this->m_arrHookObjects) ) {
-			return $this->m_arrHookObjects;
-		}
-
-		$hooks = [];
-		foreach ( $this->m_arrHooks as $path => $hook ) {
-			if ( is_array($hook) ) {
-				if ( isset($hook[0]) ) {
-					$args = $hook;
-					$hook = $hook[0];
-					unset($args[0]);
-
-					$hooks[] = Hook::withArgs($path, $hook, $args);
-				}
-				else {
-					foreach ( $hook as $method => $action ) {
-						$hooks[] = Hook::withMethod($path, $method, $action);
-					}
-				}
-			}
-			else {
-				$hooks[] = Hook::withAction($path, $hook);
-			}
-		}
-
-		return $this->m_arrHookObjects = $hooks;
+		return $this->hookObjects ??= $this->getActionMapper()->getMapping();
 	}
 
 

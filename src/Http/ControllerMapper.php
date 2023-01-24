@@ -26,7 +26,6 @@ class ControllerMapper {
 			$attributes = $controllerRefl->getAttributes(Controller::class);
 			foreach ( $attributes as $attribute ) {
 				$ctrlr = $attribute->newInstance();
-				$app = $controllerRefl->newInstanceWithoutConstructor();
 				if ($ctrlr->prefix) {
 					$prefixes[$ctrlr->prefix] = $controllerRefl->getName();
 				}
