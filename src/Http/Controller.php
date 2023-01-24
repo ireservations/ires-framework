@@ -299,9 +299,7 @@ abstract class Controller {
 					$this->actionArgs = $actionArgs;
 
 					// Action access
-					if ( count($attributes = $method->getAttributes(Access::class)) ) {
-						$this->aclAlterAnnotations($hook->action, $attributes);
-					}
+					$this->aclAlterAction($method);
 
 					$this->__start();
 
@@ -453,15 +451,10 @@ abstract class Controller {
 			$this->tpl = AppTemplate::instance();
 		}
 
-		$this->ctrlrReflection = new ReflectionClass(get_class($this));
+		$this->ctrlrReflection = new ReflectionClass($this);
 
 		// Controller access
-		if ( count($attributes = $this->ctrlrReflection->getAttributes(Access::class)) ) {
-			foreach ( $attributes as $attribute ) {
-				$access = $attribute->newInstance();
-				$this->aclAdd(ltrim($access->name, '+-'));
-			}
-		}
+		$this->aclAlterController($this->ctrlrReflection);
 
 		if ( $this->localCsfr ) {
 			$this->aclAdd('LOCAL_CSRF');

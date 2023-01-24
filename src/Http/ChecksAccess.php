@@ -8,6 +8,8 @@ use Framework\Annotations\Access;
 use Framework\Http\Exception\AccessDeniedException;
 use Framework\Http\Exception\RedirectException;
 use InvalidArgumentException;
+use ReflectionClass;
+use ReflectionMethod;
 
 trait ChecksAccess {
 
@@ -37,7 +39,9 @@ trait ChecksAccess {
 		}
 	}
 
-	protected function aclAlterAnnotations( string $hook, array $attributes ) : void {
+	protected function aclAlterAction( ReflectionMethod $action ) : void {
+		$hook = $action->getName();
+		$attributes = $action->getAttributes(Access::class);
 		foreach ( $attributes AS $attribute ) {
 			$access = $attribute->newInstance();
 			$zone = $access->name;
@@ -50,6 +54,18 @@ trait ChecksAccess {
 			else {
 				$this->aclAdd(ltrim($zone, '+-'), $hook, $access->arg);
 			}
+		}
+	}
+
+	protected function aclAlterController( ReflectionClass $controller ) : void {
+		$reflection = $controller;
+		while ( $reflection ) {
+			$attributes = $reflection->getAttributes(Access::class);
+			foreach ( $attributes as $attribute ) {
+				$access = $attribute->newInstance();
+				$this->aclAdd(ltrim($access->name, '+-'));
+			}
+			$reflection = $reflection->getParentClass();
 		}
 	}
 
