@@ -92,7 +92,7 @@ trait ChecksAccess {
 		return User::access($zone, $object);
 	}
 
-	protected function aclObject( int $arg ) : AppActiveRecordObject {
+	protected function aclObject( int $arg ) : ?AppActiveRecordObject {
 		if ( !array_key_exists($arg, $this->actionArgs) ) {
 			throw new InvalidArgumentException($arg);
 		}
