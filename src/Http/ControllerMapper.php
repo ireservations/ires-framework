@@ -50,14 +50,14 @@ class ControllerMapper {
 		$zones = [];
 		while ( $reflection ) {
 			$attributes = $reflection->getAttributes(Access::class);
-			foreach ( $attributes as $attribute ) {
+			foreach ( array_reverse($attributes) as $attribute ) {
 				$access = $attribute->newInstance();
 				$zones[] = $access->name;
 			}
 			$reflection = $reflection->getParentClass();
 		}
 
-		return $zones;
+		return array_reverse($zones);
 	}
 
 	protected function getMappingFile() : string {
