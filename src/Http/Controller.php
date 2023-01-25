@@ -166,7 +166,7 @@ abstract class Controller {
 	 */
 	public static function makeApplication( string $fullUri, array $addCtrlrOptions = [] ) : AppController {
 		[$ctrlrClass, $actionPath, $ctrlrArgs, $ctrlrOptions] = static::findController($fullUri);
-		$ctrlrOptions = array_merge_recursive($ctrlrOptions, $addCtrlrOptions);
+		$ctrlrOptions = array_merge_recursive_distinct($ctrlrOptions, $addCtrlrOptions);
 		$application = new $ctrlrClass($actionPath, $ctrlrArgs, $ctrlrOptions);
 
 		$application->fullRequestUri = '/' . trim($fullUri, '/');
@@ -204,7 +204,7 @@ abstract class Controller {
 	 * 2 .   L o a d   t h e   a p p l i c a t i o n
 	 */
 	public function __construct( string $actionPath, array $ctrlrArgs = [], array $ctrlrOptions = [] ) {
-		$this->ctrlrOptions = array_merge_recursive($this->ctrlrOptions, $ctrlrOptions);
+		$this->ctrlrOptions = array_merge_recursive_distinct($this->ctrlrOptions, $ctrlrOptions);
 
 		$this->ctrlrArgs = $ctrlrArgs;
 
