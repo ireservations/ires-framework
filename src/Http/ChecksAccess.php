@@ -41,33 +41,31 @@ trait ChecksAccess {
 		}
 	}
 
-	protected function aclAlterAction( ReflectionMethod $action ) : void {
-		$hook = $action->getName();
-		$attributes = $action->getAttributes(Access::class);
+	protected function aclAlterAction() : void {
+		$hook = $this->actionReflection->getName();
+		$attributes = $this->actionReflection->getAttributes(Access::class);
 		foreach ( $attributes AS $attribute ) {
 			$access = $attribute->newInstance();
 			$zone = $access->name;
 
-			// aclRemove
 			if ( $zone[0] == '-' ) {
 				$this->aclRemove(ltrim($zone, '+-'), $hook);
 			}
-			// aclAdd
 			else {
 				$this->aclAdd(ltrim($zone, '+-'), $hook, $access->arg);
 			}
 		}
 	}
 
-	protected function aclAlterController( ReflectionClass $controller ) : void {
-		$reflection = $controller;
-		while ( $reflection ) {
-			$attributes = $reflection->getAttributes(Access::class);
-			foreach ( $attributes as $attribute ) {
-				$access = $attribute->newInstance();
-				$this->aclAdd(ltrim($access->name, '+-'));
+	protected function aclAlterController() : void {
+		$hook = $this->actionReflection->getName();
+		foreach ( $this->ctrlrOptions['accessZones'] ?? [] as $zone ) {
+			if ( $zone[0] == '-' ) {
+				$this->aclRemove(ltrim($zone, '+-'), $hook);
 			}
-			$reflection = $reflection->getParentClass();
+			else {
+				$this->aclAdd(ltrim($zone, '+-'), $hook, null);
+			}
 		}
 	}
 

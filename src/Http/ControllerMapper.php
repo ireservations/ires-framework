@@ -2,6 +2,7 @@
 
 namespace Framework\Http;
 
+use Framework\Annotations\Access;
 use Framework\Annotations\Controller;
 use Generator;
 use ReflectionClass;
@@ -26,9 +27,12 @@ class ControllerMapper {
 			$attributes = $controllerRefl->getAttributes(Controller::class);
 			foreach ( $attributes as $attribute ) {
 				$ctrlr = $attribute->newInstance();
-				if ($ctrlr->prefix) {
-					$prefixes[$ctrlr->prefix] = $controllerRefl->getName();
-				}
+				$prefixes[$ctrlr->prefix] = [
+					$controllerRefl->getName(),
+					[
+						'accessZones' => $this->getAccessZones($controllerRefl),
+					],
+				];
 			}
 		}
 		uksort($prefixes, fn($a, $b) => strlen($b) <=> strlen($a));
@@ -40,6 +44,20 @@ class ControllerMapper {
 		$mapping = $this->createMapping();
 		$code = "<?php\n\nreturn " . var_export($mapping, true) . ";\n";
 		file_put_contents($file, $code);
+	}
+
+	protected function getAccessZones( ReflectionClass $reflection ) : array {
+		$zones = [];
+		while ( $reflection ) {
+			$attributes = $reflection->getAttributes(Access::class);
+			foreach ( $attributes as $attribute ) {
+				$access = $attribute->newInstance();
+				$zones[] = $access->name;
+			}
+			$reflection = $reflection->getParentClass();
+		}
+
+		return $zones;
 	}
 
 	protected function getMappingFile() : string {

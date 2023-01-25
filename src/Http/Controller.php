@@ -52,23 +52,27 @@ abstract class Controller {
 	protected string $fullRequestUri = '';
 	protected string $actionPath = '';
 	protected string $actionMatch = '';
+
 	protected $m_arrHooks				= [];
 	/** @var Hook[] */
 	protected array $hookObjects;
-	protected string $actionCallback = '';
-	protected array $ctrlrArgs = [];
-	protected array $actionArgs = [];
-	protected array $runOptions = [];
-	protected array $actionOptions = [];
+
 	protected ?ReflectionClass $ctrlrReflection = null;
+	protected array $ctrlrOptions = [
+		'access' => true,
+		'accessZones' => [],
+	];
+	protected array $ctrlrArgs = [];
+
 	protected ?ReflectionMethod $actionReflection = null;
+	protected array $actionOptions = [];
+	protected array $actionArgs = [];
+	protected string $actionCallback = '';
 
 	protected bool $disallowIframes = true;
-	protected bool $cspReporting = true;
-	protected bool $assignTemplate = true;
 
-	protected ?AppTemplate $tpl = null;
 	protected db_generic $db;
+	protected ?AppTemplate $tpl = null;
 
 
 	/**
@@ -160,15 +164,10 @@ abstract class Controller {
 	 * 1 .   T h e   M V C   s t a r t e r
 	 * @return static
 	 */
-	public static function makeApplication( string $fullUri, array $runOptions = [] ) : AppController {
-		if ( '/' == $fullUri ) {
-			$application = new HomeController('/', [], $runOptions);
-		}
-		else {
-			list($ctrlrClass, $actionPath, $ctrlrArgs) = static::findController($fullUri);
-
-			$application = new $ctrlrClass($actionPath, $ctrlrArgs, $runOptions);
-		}
+	public static function makeApplication( string $fullUri, array $addCtrlrOptions = [] ) : AppController {
+		[$ctrlrClass, $actionPath, $ctrlrArgs, $ctrlrOptions] = static::findController($fullUri);
+		$ctrlrOptions = array_merge_recursive($ctrlrOptions, $addCtrlrOptions);
+		$application = new $ctrlrClass($actionPath, $ctrlrArgs, $ctrlrOptions);
 
 		$application->fullRequestUri = '/' . trim($fullUri, '/');
 		return $application;
@@ -183,21 +182,29 @@ abstract class Controller {
 
 		$mapping = static::getControllerMapper()->getMapping();
 
-		foreach ( $mapping as $prefix => $class ) {
+		$homeCtrlr = $mapping[''] ?? [HomeController::class, []];
+
+		if ( $uri === '' ) {
+			[$class, $ctrlrOptions] = $homeCtrlr;
+			return [$class, '', [], $ctrlrOptions];
+		}
+
+		foreach ( $mapping as $prefix => [$class, $ctrlrOptions] ) {
 			if ( self::matchControllerRoute($prefix, $uri, $params, $path) ) {
-				return [$class, $path, $params];
+				return [$class, $path, $params, $ctrlrOptions];
 			}
 		}
 
-		return [HomeController::class, $uri, []];
+		[$class, $ctrlrOptions] = $homeCtrlr;
+		return [$class, $uri, [], $ctrlrOptions];
 	}
 
 
 	/**
 	 * 2 .   L o a d   t h e   a p p l i c a t i o n
 	 */
-	public function __construct( string $actionPath, array $ctrlrArgs = [], array $runOptions = [] ) {
-		$this->runOptions = $runOptions + [];
+	public function __construct( string $actionPath, array $ctrlrArgs = [], array $ctrlrOptions = [] ) {
+		$this->ctrlrOptions = array_merge_recursive($this->ctrlrOptions, $ctrlrOptions);
 
 		$this->ctrlrArgs = $ctrlrArgs;
 
@@ -298,7 +305,7 @@ abstract class Controller {
 					$this->actionArgs = $actionArgs;
 
 					// Action access
-					$this->aclAlterAction($method);
+					$this->aclAlterAction();
 
 					$this->__start();
 
@@ -443,27 +450,11 @@ abstract class Controller {
 	}
 
 
-	protected function __preload() : void {
-		$this->db = $GLOBALS['db'];
-
-		if ( $this->assignTemplate ) {
-			$this->tpl = AppTemplate::instance();
-		}
-
-		$this->ctrlrReflection = new ReflectionClass($this);
-
-		// Controller access
-		$this->aclAlterController($this->ctrlrReflection);
+	protected function assignTpl() : void {
+		$this->tpl = AppTemplate::instance();
 	}
 
-
-	protected function __loaded() : void {
-	}
-
-
-	protected function __start() : void {
-		$this->aclCheck();
-
+	protected function maybeDisallowIframes() : void {
 		if ( $this->tpl ) {
 			$this->tpl->assign('disallowIframes', $this->disallowIframes);
 		}
@@ -471,10 +462,25 @@ abstract class Controller {
 		if ( $this->disallowIframes ) {
 			@header('X-Frame-Options: SAMEORIGIN');
 		}
+	}
 
-		if ( $this->cspReporting ) {
-			@header("Content-Security-Policy-Report-Only: script-src 'self' 'unsafe-inline' 'unsafe-eval'; report-uri /csp");
-		}
+
+	protected function __preload() : void {
+		$this->db = $GLOBALS['db'];
+
+		$this->assignTpl();
+
+		$this->ctrlrReflection = new ReflectionClass($this);
+	}
+
+	protected function __loaded() : void {
+		// Controller access
+		$this->aclAlterController();
+	}
+
+	protected function __start() : void {
+		$this->aclCheck();
+		$this->maybeDisallowIframes();
 	}
 
 
