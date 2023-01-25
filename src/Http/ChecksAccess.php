@@ -70,7 +70,7 @@ trait ChecksAccess {
 	}
 
 	protected function aclCheck() : void {
-		if ( ($this->runOptions['access'] ?? true) === false ) {
+		if ( ($this->ctrlrOptions['access'] ?? true) === false ) {
 			return;
 		}
 
