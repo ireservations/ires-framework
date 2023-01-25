@@ -13,58 +13,46 @@ use ReflectionMethod;
 
 trait ChecksAccess {
 
-	protected array $acl = [];
+	protected array $actionAcl = [];
 
-	protected function aclAdd( string|array $zones, null|string|array $hooks = null, ?int $arg = null ) : void {
-		if ( $hooks === null ) {
-			$hooks = array_column($this->getHooks(), 'action');
-		}
-
+	protected function aclAdd( string|array $zones, ?int $arg = null ) : void {
 		$zones = (array) $zones;
-		$hooks = (array) $hooks;
 
-		foreach ( $hooks AS $hook ) {
-			foreach ( $zones AS $zone ) {
-				$this->acl[$hook][$zone] = $arg;
-			}
+		foreach ( $zones AS $zone ) {
+			$this->actionAcl[$zone] = $arg;
 		}
 	}
 
-	protected function aclRemove( string|array $zones, string|array $hooks ) : void {
+	protected function aclRemove( string|array $zones ) : void {
 		$zones = (array) $zones;
-		$hooks = (array) $hooks;
 
-		foreach ( $hooks AS $hook ) {
-			foreach ( $zones AS $zone ) {
-				unset($this->acl[$hook][$zone]);
-			}
+		foreach ( $zones AS $zone ) {
+			unset($this->actionAcl[$zone]);
 		}
 	}
 
 	protected function aclAlterAction() : void {
-		$hook = $this->actionReflection->getName();
 		$attributes = $this->actionReflection->getAttributes(Access::class);
 		foreach ( $attributes AS $attribute ) {
 			$access = $attribute->newInstance();
 			$zone = $access->name;
 
 			if ( $zone[0] == '-' ) {
-				$this->aclRemove(ltrim($zone, '+-'), $hook);
+				$this->aclRemove(ltrim($zone, '+-'));
 			}
 			else {
-				$this->aclAdd(ltrim($zone, '+-'), $hook, $access->arg);
+				$this->aclAdd(ltrim($zone, '+-'), $access->arg);
 			}
 		}
 	}
 
 	protected function aclAlterController() : void {
-		$hook = $this->actionReflection->getName();
 		foreach ( $this->ctrlrOptions['accessZones'] ?? [] as $zone ) {
 			if ( $zone[0] == '-' ) {
-				$this->aclRemove(ltrim($zone, '+-'), $hook);
+				$this->aclRemove(ltrim($zone, '+-'));
 			}
 			else {
-				$this->aclAdd(ltrim($zone, '+-'), $hook, null);
+				$this->aclAdd(ltrim($zone, '+-'), null);
 			}
 		}
 	}
@@ -74,7 +62,7 @@ trait ChecksAccess {
 			return;
 		}
 
-		foreach ( $this->acl[$this->actionCallback] ?? [] AS $zone => $arg ) {
+		foreach ( $this->actionAcl AS $zone => $arg ) {
 			if ( !$this->aclAccess($zone, $arg) ) {
 				$this->aclExit($zone);
 			}

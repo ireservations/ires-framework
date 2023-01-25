@@ -7,7 +7,7 @@ use App\Services\Aro\AppActiveRecordObject;
 use App\Services\Http\AppController;
 use App\Services\Session\User;
 use App\Services\Tpl\AppTemplate;
-use Framework\Annotations\Access;
+use Framework\Annotations\AroToken;
 use Framework\Annotations\Loaders;
 use Framework\Aro\ActiveRecordException;
 use Framework\Http\Exception\AccessDeniedException;
@@ -480,13 +480,12 @@ abstract class Controller {
 
 	protected function __start() : void {
 		$this->aclCheck();
+		$this->validateAroToken();
+
 		$this->maybeDisallowIframes();
 	}
 
 
-	/**
-	 *
-	 */
 	protected function requireControllerArgOfType( int $n, string $aroType ) : AppActiveRecordObject {
 		/** @var AppActiveRecordObject $type */
 		if ( empty($this->ctrlrArgs[$n]) || !($object = $aroType::find($this->ctrlrArgs[$n])) ) {
@@ -497,6 +496,23 @@ abstract class Controller {
 	}
 
 
+	protected function getFallbackAroTokenObject() : ?AppActiveRecordObject {
+		return null;
+	}
+
+	protected function validateAroToken() : void {
+		$attributes = $this->actionReflection->getAttributes(AroToken::class);
+		foreach ( $attributes as $attribute ) {
+			$token = $attribute->newInstance();
+			$object = $token->arg === null ? $this->getFallbackAroTokenObject() : ($this->actionArgs[$token->arg] ?? null);
+			if ( $object ) {
+				$this->checkToken($object);
+			}
+			else {
+				throw new InvalidTokenException('<object missing>');
+			}
+		}
+	}
 
 	protected function checkToken( AppActiveRecordObject $source ) : void {
 		if ( !empty($_REQUEST['_token']) ) {
