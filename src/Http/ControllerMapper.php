@@ -2,8 +2,9 @@
 
 namespace Framework\Http;
 
-use Framework\Annotations\Access;
+use Attribute;
 use Framework\Annotations\Controller;
+use Framework\Annotations\ControllerAnnotationInterface;
 use Generator;
 use ReflectionClass;
 
@@ -21,21 +22,23 @@ class ControllerMapper {
 	}
 
 	public function createMapping() : array {
+// $t = microtime(1);
 		$controllers = $this->getAllControllerClasses(PROJECT_LOGIC);
 		$prefixes = [];
 		foreach ( $controllers as $controllerRefl ) {
 			$attributes = $controllerRefl->getAttributes(Controller::class);
+			$values = null;
 			foreach ( $attributes as $attribute ) {
 				$ctrlr = $attribute->newInstance();
+				$values ??= $this->getAttributeValues($controllerRefl);
 				$prefixes[$ctrlr->prefix] = [
 					$controllerRefl->getName(),
-					[
-						'accessZones' => $this->getAccessZones($controllerRefl),
-					],
+					$values,
 				];
 			}
 		}
 		uksort($prefixes, fn($a, $b) => strlen($b) <=> strlen($a));
+// dump(1000 * (microtime(1) - $t));
 		return $prefixes;
 	}
 
@@ -46,18 +49,36 @@ class ControllerMapper {
 		file_put_contents($file, $code);
 	}
 
-	protected function getAccessZones( ReflectionClass $reflection ) : array {
-		$zones = [];
-		while ( $reflection ) {
-			$attributes = $reflection->getAttributes(Access::class);
-			foreach ( array_reverse($attributes) as $attribute ) {
-				$access = $attribute->newInstance();
-				$zones[] = $access->name;
+	protected function getAttributeValues( ReflectionClass $reflection ) : array {
+		$attributes = $this->getAttributes($reflection);
+		$values = [];
+		foreach ( $attributes as $attribute ) {
+			$instance = $attribute->newInstance();
+			if ( $instance instanceof ControllerAnnotationInterface ) {
+				if ( $instance->controllerIsMultiple() ) {
+					$values[$instance->controllerName()][] = $instance->controllerSingleValue();
+				}
+				else {
+					$values[$instance->controllerName()] = $instance->controllerSingleValue();
+				}
 			}
-			$reflection = $reflection->getParentClass();
 		}
 
-		return array_reverse($zones);
+		return $values;
+	}
+
+	protected function getAttributes( ReflectionClass $reflection ) : array {
+		$reflections = [$reflection];
+		while ( $reflection = $reflection->getParentClass() ) {
+			$reflections[] = $reflection;
+		}
+
+		$attributes = [];
+		foreach ( array_reverse($reflections) as $reflection ) {
+			$attributes = [...$attributes, ...$reflection->getAttributes()];
+		}
+
+		return $attributes;
 	}
 
 	protected function getMappingFile() : string {

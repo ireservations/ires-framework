@@ -469,8 +469,6 @@ abstract class Controller {
 		$this->db = $GLOBALS['db'];
 
 		$this->assignTpl();
-
-		$this->ctrlrReflection = new ReflectionClass($this);
 	}
 
 	protected function __loaded() : void {
