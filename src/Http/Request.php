@@ -60,27 +60,10 @@ class Request {
 		return $cache;
 	}
 
-	static function superSuperAdmin() {
-		static $cache = null;
-		if ( $cache === null ) {
-			$cache = User::logincheck() && in_array(User::id(), SUPERADMIN_IDS);
-		}
-
-		return $cache;
-	}
-
 
 	static function mobileDevice() {
 		$ua = strtolower(self::ua());
 		return is_int(strpos($ua, 'mobile')) || is_int(strpos($ua, 'opera mini')) || is_int(strpos($ua, 'opera mobi'));
-	}
-
-	static function mobileVersion() {
-		return preg_match('#^/mobile(/|$)#', static::uri()) > 0;
-	}
-
-	static function fromMobileVersion() {
-		return self::method() == 'POST' && strpos(self::referrer(), '/mobile') !== false;
 	}
 
 

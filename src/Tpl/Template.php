@@ -69,10 +69,7 @@ class Template {
 	 *
 	 */
 	function response( $template, $layout = null ) {
-		$popup = Request::ajax();
-		$mobile = Request::mobileVersion();
-		$fetch = $popup || $mobile;
-		$function = $fetch ? 'fetch' : 'display';
+		$function = Request::ajax() ? 'fetch' : 'display';
 
 		$html = $this->$function($template, $layout);
 		$html = $this->afterResponse($html);
