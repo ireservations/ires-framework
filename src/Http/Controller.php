@@ -227,7 +227,7 @@ abstract class Controller {
 	public function executeToResponse(bool $strict = false) : Response {
 		try {
 			$result = $this->executeAction();
-			return $this->resultToResponse($result, true);
+			return $this->resultToResponse($result, $strict);
 		}
 		catch ( Throwable $ex ) {
 			return $this->exceptionToResponse($ex);
