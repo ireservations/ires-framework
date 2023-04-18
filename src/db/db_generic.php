@@ -1,5 +1,7 @@
 <?php
 
+use Framework\Http\Exception\ServerException;
+
 abstract class db_generic {
 
 	protected $m_columnDelimiter = '';
@@ -31,6 +33,32 @@ abstract class db_generic {
 	abstract public function commit();
 
 	abstract public function rollback();
+
+	public function transaction( Closure $callable, int $attempts = 1 ) : mixed {
+		$attempts = max(1, $attempts);
+
+		for ( $attempt = 1; $attempt <= $attempts; $attempt++ ) {
+			try {
+				$this->begin();
+				$result = call_user_func($callable, $this);
+				$this->commit();
+				return $result;
+			}
+			catch ( db_exception $ex ) {
+				$this->rollback();
+
+				if ( $attempt >= $attempts || !$this->isRetryableException($ex) ) {
+					throw $ex;
+				}
+			}
+		}
+
+		throw new ServerException("Unknown transaction state in db_generic");
+	}
+
+	protected function isRetryableException( db_exception $ex ) : bool {
+		return stripos($ex->getMessage(), 'deadlock found') !== false;
+	}
 
 
 
