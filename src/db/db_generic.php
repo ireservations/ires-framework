@@ -51,6 +51,11 @@ abstract class db_generic {
 					throw $ex;
 				}
 			}
+			catch ( Throwable $ex ) {
+				$this->rollback();
+
+				throw $ex;
+			}
 		}
 
 		throw new ServerException("Unknown transaction state in db_generic");
