@@ -32,20 +32,30 @@ class db_mysqli extends db_generic {
 
 
 	public function begin() {
-		// 'start transaction': don't auto commit all following SQL UNTIL transaction end
-		return $this->dbCon->autocommit(false);
+		if (!$this->dbCon->begin_transaction()) {
+			throw new db_exception('BEGIN');
+		}
+
+		$this->transaction++;
+		$this->queries[] = '[? ms] BEGIN';
 	}
 
 	public function commit() {
-		$this->dbCon->commit();
-		// end transaction: auto commit all following SQL
-		return $this->dbCon->autocommit(true);
+		if (!$this->dbCon->commit()) {
+			throw new db_exception('COMMIT');
+		}
+
+		$this->transaction = max(0, $this->transaction - 1);
+		$this->queries[] = '[? ms] COMMIT';
 	}
 
 	public function rollback() {
-		$this->dbCon->rollBack();
-		// end transaction: auto commit all following SQL
-		return $this->dbCon->autocommit(true);
+		if (!$this->dbCon->rollback()) {
+			throw new db_exception('ROLLBACK');
+		}
+
+		$this->transaction = max(0, $this->transaction - 1);
+		$this->queries[] = '[? ms] ROLLBACK';
 	}
 
 

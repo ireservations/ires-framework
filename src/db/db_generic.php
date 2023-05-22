@@ -15,6 +15,7 @@ abstract class db_generic {
 	public $query_logger;
 	public $queries = array();
 	public $times = [];
+	protected $transaction = 0;
 
 	public $log_errors = true;
 	public $except = false;
@@ -34,31 +35,27 @@ abstract class db_generic {
 
 	abstract public function rollback();
 
-	public function transaction( Closure $callable, int $attempts = 1 ) : mixed {
-		$attempts = max(1, $attempts);
-
-		for ( $attempt = 1; $attempt <= $attempts; $attempt++ ) {
-			try {
+	public function transaction( Closure $callable ) : mixed {
+		try {
+			if ($this->transaction == 0) {
 				$this->begin();
-				$result = call_user_func($callable, $this);
+			}
+
+			$result = call_user_func($callable, $this);
+
+			if ($this->transaction == 1) {
 				$this->commit();
-				return $result;
 			}
-			catch ( db_exception $ex ) {
-				$this->rollback();
+			$this->transaction--;
 
-				if ( $attempt >= $attempts || !$this->isRetryableException($ex) ) {
-					throw $ex;
-				}
-			}
-			catch ( Throwable $ex ) {
-				$this->rollback();
-
-				throw $ex;
-			}
+			return $result;
 		}
+		catch ( Throwable $ex ) {
+			$this->rollback();
+			$this->transaction--;
 
-		throw new ServerException("Unknown transaction state in db_generic");
+			throw $ex;
+		}
 	}
 
 	protected function isRetryableException( db_exception $ex ) : bool {
