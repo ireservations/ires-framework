@@ -79,10 +79,18 @@ class db_mysqli extends db_generic {
 	public function query( $query ) {
 		$_start = microtime(1);
 
-		$r = $this->dbCon->query($query);
-		$this->error = $r ? '' : $this->dbCon->error;
-		$this->errno = $r ? 0 : $this->dbCon->errno;
 		$this->num_queries++;
+
+		try {
+			$r = $this->dbCon->query($query);
+			$this->error = $r ? '' : $this->dbCon->error;
+			$this->errno = $r ? 0 : $this->dbCon->errno;
+		}
+		catch ( mysqli_sql_exception $ex ) {
+			$r = false;
+			$this->error = $ex->getMessage();
+			$this->errno = $ex->getCode();
+		}
 
 		if ( $this->log_queries ) {
 			$_time = round((microtime(1) - $_start) * 1000);
