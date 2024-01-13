@@ -27,7 +27,7 @@ class Request {
 	}
 
 	static function host() {
-		return $_SERVER['SERVER_NAME'] ?? $_SERVER['HTTP_HOST'] ?? '';
+		return $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
 	}
 
 	static function ip() {
