@@ -10,12 +10,16 @@ use Framework\Console\Command;
 use PhpParser;
 use ReflectionClass;
 use ReflectionMethod;
+use ReflectionNamedType;
 use ReflectionProperty;
+use ReflectionUnionType;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class CompileModelsCommand extends Command {
+
+	protected PhpParser\NameContext $localImports;
 
 	protected function configure() {
 		$this->setName('compile:models');
@@ -42,7 +46,7 @@ class CompileModelsCommand extends Command {
 			$modelModel = substr(basename($modelFile), 0, -4);
 			$code = file_get_contents($modelFile);
 
-			$parser = (new PhpParser\ParserFactory)->create(PhpParser\ParserFactory::ONLY_PHP7, new CompileModels\MinimalPhpLexer());
+			$parser = (new PhpParser\ParserFactory)->createForHostVersion();
 			try {
 				$ast = $parser->parse($code);
 				$nameResolver = new PhpParser\NodeVisitor\NameResolver();
@@ -83,7 +87,7 @@ class CompileModelsCommand extends Command {
 				echo "\n";
 			}
 
-			$localImports = $imports[$class->getShortName()] ?? null;
+			$this->localImports = $imports[$class->getShortName()] ?? null;
 
 			// Columns
 			try {
@@ -173,17 +177,22 @@ class CompileModelsCommand extends Command {
 						$totalProperties++;
 
 						$type = $this->getMethodReturnType($method);
-						if ( $type ) {
-							if ( $type[0] != strtolower($type[0]) || strpos($type, '_') !== false ) {
-								$type = $localImports->getResolvedClassName(new PhpParser\Node\Name($type))->toCodeString();
-							}
-							elseif ( $type[0] == '\\' ) {
-								$shortTarget = rtrim(strtolower(basename(str_replace('\\', '/', $type))), '[]');
-								if ( !in_array($shortTarget, ['resource']) ) {
-									$explicitGetters[$class->getShortName()][$name] = $type;
-								}
-							}
-						}
+// 						if ( $type ) {
+// 							if ( $type[0] != strtolower($type[0]) || strpos($type, '_') !== false ) {
+// echo "\n$name:\n";
+// dump($type);
+// 								$nullable = $type[0] === '?' ? '?' : '';
+// 								$type = ltrim($type, '?');
+// 								$type = $nullable . $localImports->getResolvedClassName(new PhpParser\Node\Name($type))->toCodeString();
+// dump($type);
+// 							}
+// 							elseif ( $type[0] == '\\' ) {
+// 								$shortTarget = rtrim(strtolower(basename(str_replace('\\', '/', $type))), '[]');
+// 								if ( !in_array($shortTarget, ['resource']) ) {
+// 									$explicitGetters[$class->getShortName()][$name] = $type;
+// 								}
+// 							}
+// 						}
 
 						$propertiesOutput[$name] = strtr($_propertyOutput, [
 							'__TYPE__' => $type ?: 'mixed',
@@ -234,7 +243,7 @@ class CompileModelsCommand extends Command {
 		return 0;
 	}
 
-	protected function write( $code ) {
+	protected function write( $code ) : void {
 		$dir = $this->getOutputDir();
 
 		if ( !$dir ) {
@@ -252,24 +261,64 @@ class CompileModelsCommand extends Command {
 		echo "\nWrote " . number_format($written) . " bytes to " . $filepath . "\n";
 	}
 
-	protected function getMethodReturnType( ReflectionMethod $method ) {
+	protected function getMethodReturnType( ReflectionMethod $method ) : string {
+		$return = $origReturn = $this->getCommentType($method->getDocComment(), 'return');
+		if ( $return ) {
+			if ( strpos($return, '|') !== false ) {
+				echo $method->getName() . ":\n";
+				return dump($return);
+			}
+
+			$nullable = $return[0] == '?' ? '?' : '';
+			$return = ltrim($return, '?');
+			$nested = preg_match('#([\[\]]+)$#', $return, $match) ? $match[1] : '';
+			$return = rtrim($return, '[]');
+
+			if ( in_array($return, ['self', 'static', 'parent', 'array', 'int', 'float', 'string', 'bool']) ) {
+				return $nullable . $return . $nested;
+			}
+
+			if ( $return[0] == '\\' ) {
+				echo $method->getName() . ":\n";
+				return dump($nullable . $return . $nested);
+			}
+
+			$namespacedReturn = $this->localImports->getResolvedClassName(new PhpParser\Node\Name($return))->toCodeString();
+			return $nullable . $namespacedReturn . $nested;
+		}
+
 		$type = $method->getReturnType();
-		if ( $type ) {
+
+		if ( $type instanceof ReflectionUnionType ) {
+			$types = array_map(function(ReflectionNamedType $type) {
+				return $type->isBuiltin() ? $type->getName() : $this->unnamespaceModelClass($type->getName());
+			}, $type->getTypes());
+			return implode('|', $types);
+		}
+
+		if ( $type instanceof ReflectionNamedType ) {
 			$nullable = $type->allowsNull() ? '?' : '';
 			if ( $type->isBuiltin() ) {
 				return $nullable . $type->getName();
 			}
 
-			return $nullable . '\\' . $type->getName();
+			return $nullable . $this->unnamespaceModelClass($type->getName());
 		}
-		return $this->getCommentType($method->getDocComment(), 'return');
+
+		return '';
 	}
 
-	protected function gePropertyType( ReflectionProperty $method ) {
+	protected function unnamespaceModelClass( string $className ) : string {
+		$className = '\\' . $className;
+		// $className = preg_replace('#^\\\\App\\\\Models\\\\#', '', $className);
+		return $className;
+	}
+
+	protected function gePropertyType( ReflectionProperty $method ) : string {
 		return $this->getCommentType($method->getDocComment(), 'var');
 	}
 
-	protected function getCommentType( $comment, $atName ) {
+	protected function getCommentType( $comment, $atName ) : string {
 		if ( $comment ) {
 			if ( preg_match('#@' . $atName . ' +([^ ]+)#', $comment, $match) ) {
 				return trim($match[1]);
@@ -279,7 +328,7 @@ class CompileModelsCommand extends Command {
 		return '';
 	}
 
-	protected function getClassDocProperties( ReflectionClass $class ) {
+	protected function getClassDocProperties( ReflectionClass $class ) : array {
 		$props = [];
 
 		$comment = trim($class->getDocComment());
@@ -296,7 +345,7 @@ class CompileModelsCommand extends Command {
 		return $props;
 	}
 
-	protected function getClassPublicProperties( ReflectionClass $class ) {
+	protected function getClassPublicProperties( ReflectionClass $class ) : array {
 		$props = [];
 		foreach ( $class->getProperties() as $prop ) {
 			if ( !$prop->isStatic() && $prop->isPublic() ) {
@@ -307,11 +356,11 @@ class CompileModelsCommand extends Command {
 		return $props;
 	}
 
-	protected function getTemplate( $name ) {
+	protected function getTemplate( $name ) : string {
 		return file_get_contents(dirname(__DIR__) . "/templates/{$name}.php.txt");
 	}
 
-	protected function getOutputDir() {
+	protected function getOutputDir() : string {
 		return defined('PROJECT_IDE_OUTPUT') ? PROJECT_IDE_OUTPUT : SCRIPT_ROOT;
 	}
 
