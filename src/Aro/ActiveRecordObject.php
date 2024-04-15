@@ -368,7 +368,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Get one record from the object cache
-	 * @return static
+	 * @return ?static
 	 */
 	static public function _fromCache( $id ) {
 		if ( self::$_objectCache) {
@@ -383,7 +383,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
-	 * @return static
+	 * @return ?static
 	 */
 	static function find( $id ) {
 		if ( !$id ) {
@@ -397,7 +397,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	}
 
 	/**
-	 * @return static
+	 * @return ?static
 	 */
 	static function load( $id ) {
 		return static::find($id);
@@ -421,7 +421,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Will return any first record that matches
-	 * @return static
+	 * @return ?static
 	 */
 	static public function findFirst( $conditions, ...$args ) {
 		$conditions = static::$_db->prepAndReplaceQMarks($conditions, $args);
@@ -540,7 +540,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
-	 * @return static
+	 * @return ?static
 	 */
 	static public function any( $conditions = '1', ...$args ) {
 		$conditions = static::$_db->prepAndReplaceQMarks($conditions, $args);
@@ -757,7 +757,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 * @return bool
 	 */
-	function update( $updates ) {
+	public function update( $updates ) {
 		if ( is_array($updates) ) {
 			static::presave($updates);
 
@@ -798,7 +798,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Copies and/or replaces data from $data into $this
-	 * @return static
+	 * @return $this
 	 */
 	public function fill( $data ) {
 		foreach ( $data AS $k => $v ) {
@@ -815,7 +815,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Returns the PK value for this object
-	 * @return int
+	 * @return ?int
 	 */
 	public function getPKValue() {
 		$key = $this::$_pk;
