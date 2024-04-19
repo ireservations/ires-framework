@@ -1,10 +1,16 @@
 /**
  * __CLASS__
  *
+ * explicits:
+__EXPLICIT_PROPERTIES__
+ *
+ * columns:
 __COLUMN_PROPERTIES__
  *
+ * relationships:
 __RELATIONSHIP_PROPERTIES__
  *
+ * getters:
 __GETTER_PROPERTIES__
  */
 class __CLASS__ {}

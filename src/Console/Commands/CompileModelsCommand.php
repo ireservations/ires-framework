@@ -77,15 +77,33 @@ class CompileModelsCommand extends Command {
 			]);
 
 			// Explicit properties
-			$exProps = $this->getClassDocProperties($class);
-			$allVars = $exProps;
+			$exPropsSelf = $this->getClassDocProperties($class, false);
+			$exPropsParents = $this->getClassDocProperties($class->getParentClass(), true);
+			$allVars = $exPropsParents + $exPropsSelf;
+
+			$propertiesOutput = [];
+			foreach ( $exPropsSelf as $name => $type ) {
+				$propertiesOutput[$name] = strtr($_propertyOutput, [
+					'__TYPE__' => $type,
+					'__NAME__' => $name,
+				]);
+			}
 
 			if ( $onlyClass ) {
-				echo "Explicit (skip):\n";
-				ksort($allVars);
-				print_r(array_keys($allVars));
+				echo "Explicit parents (skip):\n";
+				ksort($exPropsParents);
+				print_r(array_keys($exPropsParents));
+				echo "\n";
+
+				echo "Explicit self (add):\n";
+				ksort($exPropsSelf);
+				print_r(array_keys($exPropsSelf));
 				echo "\n";
 			}
+
+			$classOutput = strtr($classOutput, [
+				'__EXPLICIT_PROPERTIES__' => rtrim(implode($propertiesOutput)) ?: ' *',
+			]);
 
 			$this->localImports = $imports[$class->getShortName()] ?? null;
 
@@ -328,7 +346,7 @@ class CompileModelsCommand extends Command {
 		return '';
 	}
 
-	protected function getClassDocProperties( ReflectionClass $class ) : array {
+	protected function getClassDocProperties( ?ReflectionClass $class, bool $includeParents ) : array {
 		$props = [];
 
 		$comment = trim($class->getDocComment());
@@ -338,8 +356,8 @@ class CompileModelsCommand extends Command {
 			}
 		}
 
-		if ( $parent = $class->getParentClass() ) {
-			return array_merge($props, $this->getClassDocProperties($parent));
+		if ( $includeParents && ($parent = $class->getParentClass()) ) {
+			return array_merge($props, $this->getClassDocProperties($parent, $includeParents));
 		}
 
 		return $props;
