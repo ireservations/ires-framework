@@ -6,6 +6,8 @@ class Session {
 
 	const REMEMBER_N_DAYS = 15;
 
+	public static string $samesite = 'Lax';
+
 	static function exists() {
 		$name = session_name();
 		return isset($_COOKIE[$name]);
@@ -35,6 +37,7 @@ class Session {
 	}
 
 	static function start() {
+		@session_set_cookie_params(self::cookieParams());
 		@session_start();
 	}
 
@@ -103,12 +106,18 @@ class Session {
 			// $_COOKIE[$name] = $value;
 		}
 
-		return setcookie($name, $value, [
+		return setcookie($name, $value, self::cookieParams() + [
 			'expires' => $expire,
+		]);
+	}
+
+	static function cookieParams() : array {
+		return [
 			'path' => '/',
+			'samesite' => self::$samesite,
 			'secure' => Request::https(),
 			'httponly' => true,
-		]);
+		];
 	}
 
 }
