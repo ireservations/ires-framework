@@ -2,6 +2,12 @@
 
 namespace Framework\Aro;
 
+use App\Services\Aro\AppActiveRecordObject;
+
+/**
+ * @template Value of AppActiveRecordObject
+ * @extends ActiveRecordGenerator<Value>
+ */
 class ActiveRecordFetchGenerator extends ActiveRecordGenerator {
 
 	protected function fetch() : array {

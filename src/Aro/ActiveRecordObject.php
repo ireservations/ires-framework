@@ -335,9 +335,9 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Returns all records it finds
-	 * @return Generator|static[]
+	 * @return ActiveRecordFetchGenerator<static>
 	 */
-	static public function fetchIterator( $conditions, array $args = [], array $options = [] ) {
+	static public function fetchIterator( $conditions, array $args = [], array $options = [] ) : ActiveRecordFetchGenerator {
 		if ( is_array($conditions) ) {
 			$conditions = static::$_db->stringifyConditions($conditions);
 		}
@@ -488,9 +488,9 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * @throws db_exception
-	 * @return Generator|static[]
+	 * @return ActiveRecordGenerator<static>
 	 */
-	static public function byQueryIterator( $query, array $args = [], array $options = [] ) {
+	static public function byQueryIterator( $query, array $args = [], array $options = [] ) : ActiveRecordGenerator {
 		return new ActiveRecordGenerator(get_called_class(), $query, $args, $options);
 	}
 

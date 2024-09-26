@@ -484,8 +484,12 @@ abstract class Controller {
 	}
 
 
+	/**
+	 * @template TAroClass of AppActiveRecordObject
+	 * @param class-string<TAroClass> $aroType
+	 * @return TAroClass
+	 */
 	protected function requireControllerArgOfType( int $n, string $aroType ) : AppActiveRecordObject {
-		/** @var AppActiveRecordObject $type */
 		if ( empty($this->ctrlrArgs[$n]) || !($object = $aroType::find($this->ctrlrArgs[$n])) ) {
 			return $this->notFound();
 		}

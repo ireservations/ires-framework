@@ -2,15 +2,22 @@
 
 namespace Framework\Aro;
 
+use App\Services\Aro\AppActiveRecordObject;
 use Countable;
+use Iterator;
 use IteratorAggregate;
 use Traversable;
 
+/**
+ * @template Value of AppActiveRecordObject
+ * @implements IteratorAggregate<int, Value>
+ */
 class ActiveRecordGenerator implements IteratorAggregate, Countable {
 
-	protected $aroClass;
-	protected $query;
-	protected $args = [];
+	/** @var class-string<Value> */
+	protected string $aroClass;
+	protected string $query;
+	protected array $args = [];
 
 	protected $afterFetch;
 	protected $eagerLoad = [];
@@ -20,6 +27,9 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 	protected $page = 0;
 	protected $total;
 
+	/**
+	 * @param class-string<Value> $aroClass
+	 */
 	public function __construct( string $aroClass, string $query, array $args = [], array $options = [] ) {
 		$this->aroClass = $aroClass;
 		$this->query = $query;
@@ -97,7 +107,10 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 		return $objects;
 	}
 
-	public function getIterator() : Traversable {
+	/**
+	 * @return Iterator<int, Value>
+	 */
+	public function getIterator() : Iterator {
 		$objects = $this->fetch();
 		$done = 0;
 		while ( count($objects) ) {
