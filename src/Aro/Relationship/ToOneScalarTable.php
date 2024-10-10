@@ -61,7 +61,8 @@ class ToOneScalarTable extends ToScalar {
 	}
 
 	public function getReturnType() {
-		return $this->returnType;
+		$nullable = $this->default === null ? '|null' : '';
+		return $this->returnType . $nullable;
 	}
 
 }

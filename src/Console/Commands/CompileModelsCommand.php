@@ -3,31 +3,43 @@
 namespace Framework\Console\Commands;
 
 use App\Services\Aro\AppActiveRecordObject;
-use db_exception;
 use Framework\Aro\ActiveRecordObject;
 use Framework\Aro\ActiveRecordRelationship;
 use Framework\Console\Command;
+use Framework\Console\Commands\CompileModels\IncludesTablesAttribute;
+use Framework\Console\Commands\CompileModels\SchemaFieldDefinition;
+use Framework\Console\Commands\CompileModels\SchemaParser;
 use PhpParser;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionProperty;
+use ReflectionType;
 use ReflectionUnionType;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use db_exception;
 
 class CompileModelsCommand extends Command {
 
+	protected array $schemaTables = [];
 	protected PhpParser\NameContext $localImports;
 
 	protected function configure() {
 		$this->setName('compile:models');
-		$this->addOption('class', null, InputOption::VALUE_OPTIONAL);
+
+		$this->addOption('class', null, InputOption::VALUE_REQUIRED);
+		$this->addOption('dump', null, InputOption::VALUE_REQUIRED);
 	}
 
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		$onlyClass = $input->getOption('class');
+
+		if ( $dumpFile = $input->getOption('dump') ) {
+			$dumpSql = file_get_contents($dumpFile);
+			$this->schemaTables = SchemaParser::parseDumpSqlTables($dumpSql);
+		}
 
 		$_modelsNamespaceOutput = $this->getTemplate('Models');
 		$_classOutput = $this->getTemplate('Models.class');
@@ -60,6 +72,8 @@ class CompileModelsCommand extends Command {
 
 		/** @var ActiveRecordObject $className */
 		$totalProperties = 0;
+		$gettypes = [];
+		$nullStrings = [];
 		foreach ( get_declared_classes() as $className ) {
 			$class = new ReflectionClass($className);
 
@@ -69,6 +83,14 @@ class CompileModelsCommand extends Command {
 
 			$props = $class->getStaticProperties();
 			if ( !isset($props['_table']) || !trim($props['_table'], '_ ') ) continue;
+			$dbTable = $props['_table'];
+			$dbTables = [$dbTable];
+
+			$attributes = $class->getAttributes(IncludesTablesAttribute::class);
+			if ( count($attributes) ) {
+				$attribute = $attributes[0]->newInstance();
+				$dbTables = [...$dbTables, ...$attribute->getTables()];
+			}
 
 			$query = call_user_func([$class->getName(), 'getQuery'], '');
 
@@ -76,10 +98,13 @@ class CompileModelsCommand extends Command {
 				'__CLASS__' => $class->getShortName(),
 			]);
 
+			$this->localImports = $imports[$class->getShortName()] ?? null;
+
 			// Explicit properties
 			$exPropsSelf = $this->getClassDocProperties($class, false);
+			// $exPropsSelf += $this->getClassPublicProperties($class);
 			$exPropsParents = $this->getClassDocProperties($class->getParentClass(), true);
-			$allVars = $exPropsParents + $exPropsSelf;
+			$allVars = $exPropsParents + $exPropsSelf + $this->getClassPublicProperties($class);
 
 			$propertiesOutput = [];
 			foreach ( $exPropsSelf as $name => $type ) {
@@ -92,20 +117,18 @@ class CompileModelsCommand extends Command {
 			if ( $onlyClass ) {
 				echo "Explicit parents (skip):\n";
 				ksort($exPropsParents);
-				print_r(array_keys($exPropsParents));
+				print_r($exPropsParents);
 				echo "\n";
 
 				echo "Explicit self (add):\n";
 				ksort($exPropsSelf);
-				print_r(array_keys($exPropsSelf));
+				print_r($exPropsSelf);
 				echo "\n";
 			}
 
 			$classOutput = strtr($classOutput, [
 				'__EXPLICIT_PROPERTIES__' => rtrim(implode($propertiesOutput)) ?: ' *',
 			]);
-
-			$this->localImports = $imports[$class->getShortName()] ?? null;
 
 			// Columns
 			try {
@@ -124,13 +147,21 @@ class CompileModelsCommand extends Command {
 					$totalProperties++;
 
 					$type = gettype($value);
+					$gettypes[] = $type;
 					if ( $type == 'object' && get_class($value) != 'stdClass' ) {
 						$type = '\\' . get_class($value);
+					}
+					elseif ( in_array($type, ['array']) ) {
+						// Keep non-scalar type from init()
+					}
+					elseif ( $dbType = $this->getDbType($dbTables, $name) ) {
+						$type = $dbType->getNullablePhpType();
 					}
 					elseif ( $type == 'double' ) {
 						$type = 'float';
 					}
 					elseif ( $type == 'NULL' ) {
+						$nullStrings[] = "$className - $name";
 						$type = 'string';
 					}
 					$propertiesOutput[$name] = strtr($_propertyOutput, [
@@ -195,22 +226,6 @@ class CompileModelsCommand extends Command {
 						$totalProperties++;
 
 						$type = $this->getMethodReturnType($method);
-// 						if ( $type ) {
-// 							if ( $type[0] != strtolower($type[0]) || strpos($type, '_') !== false ) {
-// echo "\n$name:\n";
-// dump($type);
-// 								$nullable = $type[0] === '?' ? '?' : '';
-// 								$type = ltrim($type, '?');
-// 								$type = $nullable . $localImports->getResolvedClassName(new PhpParser\Node\Name($type))->toCodeString();
-// dump($type);
-// 							}
-// 							elseif ( $type[0] == '\\' ) {
-// 								$shortTarget = rtrim(strtolower(basename(str_replace('\\', '/', $type))), '[]');
-// 								if ( !in_array($shortTarget, ['resource']) ) {
-// 									$explicitGetters[$class->getShortName()][$name] = $type;
-// 								}
-// 							}
-// 						}
 
 						$propertiesOutput[$name] = strtr($_propertyOutput, [
 							'__TYPE__' => $type ?: 'mixed',
@@ -247,6 +262,9 @@ class CompileModelsCommand extends Command {
 		echo "Missing return types: " . array_sum(array_map('count', $missingReturnType)) . "\n";
 		$missingReturnType and print_r($missingReturnType);
 
+		echo "NULL-strings: " . count($nullStrings) . "\n";
+		$nullStrings and print_r($nullStrings);
+
 		// echo "Over-explicit return types: " . array_sum(array_map('count', $explicitGetters)) . "\n";
 		// $explicitGetters and print_r($explicitGetters);
 
@@ -259,6 +277,16 @@ class CompileModelsCommand extends Command {
 		echo "\nDone\n";
 
 		return 0;
+	}
+
+	protected function getDbType( array $dbTables, string $column ) : ?SchemaFieldDefinition {
+		foreach ( $dbTables as $dbTable ) {
+			if ( isset($this->schemaTables[$dbTable][$column]) ) {
+				return $this->schemaTables[$dbTable][$column];
+			}
+		}
+
+		return null;
 	}
 
 	protected function write( $code ) : void {
@@ -282,9 +310,9 @@ class CompileModelsCommand extends Command {
 	protected function getMethodReturnType( ReflectionMethod $method ) : string {
 		$return = $origReturn = $this->getCommentType($method->getDocComment(), 'return');
 		if ( $return ) {
-			if ( strpos($return, '|') !== false ) {
-				echo $method->getName() . ":\n";
-				return dump($return);
+			if ( strpos($return, '<') !== false || strpos($return, '|') !== false ) {
+				// echo $method->getName() . ":\n";
+				return $return;
 			}
 
 			$nullable = $return[0] == '?' ? '?' : '';
@@ -297,8 +325,8 @@ class CompileModelsCommand extends Command {
 			}
 
 			if ( $return[0] == '\\' ) {
-				echo $method->getName() . ":\n";
-				return dump($nullable . $return . $nested);
+				// echo $method->getName() . ":\n";
+				return $nullable . $return . $nested;
 			}
 
 			$namespacedReturn = $this->localImports->getResolvedClassName(new PhpParser\Node\Name($return))->toCodeString();
@@ -307,6 +335,10 @@ class CompileModelsCommand extends Command {
 
 		$type = $method->getReturnType();
 
+		return $this->getStringType($type) ?? '';
+	}
+
+	protected function getStringType( ReflectionType $type ) : ?string {
 		if ( $type instanceof ReflectionUnionType ) {
 			$types = array_map(function(ReflectionNamedType $type) {
 				return $type->isBuiltin() ? $type->getName() : $this->unnamespaceModelClass($type->getName());
@@ -323,7 +355,7 @@ class CompileModelsCommand extends Command {
 			return $nullable . $this->unnamespaceModelClass($type->getName());
 		}
 
-		return '';
+		return null;
 	}
 
 	protected function unnamespaceModelClass( string $className ) : string {
@@ -332,14 +364,17 @@ class CompileModelsCommand extends Command {
 		return $className;
 	}
 
-	protected function gePropertyType( ReflectionProperty $method ) : string {
-		return $this->getCommentType($method->getDocComment(), 'var');
+	protected function getPropertyType( ReflectionProperty $property ) : string {
+		if ( $type = $this->getStringType($property->getType()) ) {
+			return $type;
+		}
+		return $this->getCommentType($property->getDocComment(), 'var');
 	}
 
 	protected function getCommentType( $comment, $atName ) : string {
 		if ( $comment ) {
-			if ( preg_match('#@' . $atName . ' +([^ ]+)#', $comment, $match) ) {
-				return trim($match[1]);
+			if ( preg_match('#@' . $atName . ' (.+)#', $comment, $match) ) {
+				return trim($match[1], ' */');
 			}
 		}
 
@@ -367,7 +402,7 @@ class CompileModelsCommand extends Command {
 		$props = [];
 		foreach ( $class->getProperties() as $prop ) {
 			if ( !$prop->isStatic() && $prop->isPublic() ) {
-				$props[ $prop->getName() ] = $this->gePropertyType($prop);
+				$props[ $prop->getName() ] = $this->getPropertyType($prop);
 			}
 		}
 
