@@ -67,7 +67,7 @@ class Template {
 	public function response( string $template, ?string $layout = null ) : string {
 		$function = Request::ajax() ? 'fetch' : 'display';
 
-		$html = $this->$function($template, $layout);
+		$html = $this->$function($template, $layout) ?? '';
 		$html = $this->afterResponse($html);
 
 		return $html;
