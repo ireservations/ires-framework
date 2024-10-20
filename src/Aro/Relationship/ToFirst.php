@@ -60,7 +60,7 @@ class ToFirst extends ActiveRecordRelationship {
 	}
 
 	public function getReturnType() {
-		return '\\' . $this->target;
+		return '?\\' . $this->target;
 	}
 
 }

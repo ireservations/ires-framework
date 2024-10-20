@@ -15,10 +15,13 @@ abstract class Response implements ArrayAccess {
 		500 => 'Error',
 	];
 
-	public $code;
+	public int $code;
 	public $data;
+	/** @var ?string */
 	protected $contentType;
+	/** @var ?string */
 	protected $contentTypeCharset;
+	/** @var ?string */
 	protected $downloadFilename;
 
 	public function __construct( $data, $code = null ) {

@@ -36,7 +36,7 @@ class ToOne extends ActiveRecordRelationship {
 	}
 
 	public function getReturnType() {
-		return '\\' . $this->target;
+		return '?\\' . $this->target;
 	}
 
 }
