@@ -52,7 +52,8 @@ trait KnowsWeekdays {
 	}
 
 
-	public static function getWeekdays( $length = 0, $ucfirst = true ) {
+	/** @return array<int, string> */
+	public static function getWeekdays( $length = 0, $ucfirst = true ) : array {
 		$options = compact('ucfirst');
 
 		// 0 = SUNDAY

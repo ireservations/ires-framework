@@ -75,10 +75,10 @@ function array_merge_recursive_distinct( array $array1, array $array2 ) : array 
 }
 
 /**
- * @param AppActiveRecordObject[] $objects
- * @return string[]
+ * @param array<array-key, AppActiveRecordObject> $objects
+ * @return array<array-key, string>
  */
-function aro_options( $objects, $label = null, $key = null, $sort = false ) {
+function aro_options( array $objects, ?string $label = null, ?string $key = null, bool $sort = false ) : array {
 	$options = array();
 	foreach ( $objects AS $object ) {
 		$keyValue = $key ? array_get($object, $key) : $object->getPKValue();
@@ -90,6 +90,34 @@ function aro_options( $objects, $label = null, $key = null, $sort = false ) {
 	$sort and natcasesort($options);
 
 	return $options;
+}
+
+/**
+ * @template TAroModel of AppActiveRecordObject
+ * @param array<array-key, TAroModel> $objects
+ * @return array<array-key, TAroModel>
+ */
+function aro_sort( array $objects, string $column ) : array {
+	usort($objects, function(AppActiveRecordObject $a, AppActiveRecordObject $b) use ($column) {
+		$a = array_get($a, $column);
+		$b = array_get($b, $column);
+		return strnatcasecmp($a, $b);
+	});
+	return $objects;
+}
+
+/**
+ * @template TAroModel of AppActiveRecordObject
+ * @param array<array-key, TAroModel> $objects
+ * @return array<array-key, TAroModel>
+ */
+function aro_key( array $objects, ?string $column = null ) : array {
+	$keyed = [];
+	foreach ( $objects as $object ) {
+		$key = $column ? $object->$column : $object->getPKValue();
+		$keyed[$key] = $object;
+	}
+	return $keyed;
 }
 
 function array_flatten( $array ) {

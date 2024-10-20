@@ -7,21 +7,17 @@ use Framework\Http\Request;
 
 class Template {
 
-	static public $layout = 'framework';
+	static public string $layout = 'framework';
 
-	static protected $instance;
+	static protected AppTemplate $instance;
 
-	/** @return AppTemplate */
-	public static function instance() {
-		if ( self::$instance === null ) {
-			self::$instance = new AppTemplate;
-		}
-		return self::$instance;
+	public static function instance() : AppTemplate {
+		return self::$instance ??= new AppTemplate;
 	}
 
-	public $smarty;
+	public Smarty $smarty;
 
-	function __construct() {
+	public function __construct() {
 		$this->smarty = new Smarty;
 	}
 
@@ -29,7 +25,7 @@ class Template {
 	/**
 	 * Display a smarty template
 	 */
-	function display( $template, $layout = null, $fetch = false ) {
+	public function display( string $template, ?string $layout = null, bool $fetch = false ) : ?string {
 		$layout or $layout = static::$layout;
 
 		$this->beforeDisplay();
@@ -49,7 +45,7 @@ class Template {
 	/**
 	 * Fetch a parsed template as string
 	 */
-	function fetch( $template ) {
+	public function fetch( string $template ) : string {
 		global $db;
 
 		$this->smarty->assign('g_szRequestUri', Request::uri());
@@ -68,7 +64,7 @@ class Template {
 	/**
 	 *
 	 */
-	function response( $template, $layout = null ) {
+	public function response( string $template, ?string $layout = null ) : string {
 		$function = Request::ajax() ? 'fetch' : 'display';
 
 		$html = $this->$function($template, $layout);
@@ -81,7 +77,7 @@ class Template {
 	/**
 	 *
 	 */
-	function frame( $template, $layout = null ) {
+	public function frame( string $template, ?string $layout = null ) : string {
 		if ( Request::ajax() ) {
 			return $this->fetch($template . '_frame');
 		}
@@ -93,21 +89,21 @@ class Template {
 	/**
 	 * Assign last second vars
 	 */
-	function beforeDisplay() {
+	public function beforeDisplay() : void {
 	}
 
 
 	/**
 	 * Assign last second vars
 	 */
-	function beforeFetch() {
+	public function beforeFetch() : void {
 	}
 
 
 	/**
 	 * Change response() output
 	 */
-	function afterResponse( $html ) {
+	public function afterResponse( string $html ) : string {
 		return $html;
 	}
 
@@ -115,7 +111,7 @@ class Template {
 	/**
 	 * Assign vars to the smarty object
 	 */
-	function assign( $key, $val = null ) {
+	public function assign( string|array $key, mixed $val = null ) : void {
 		if ( is_array($key) ) {
 			foreach ( $key AS $k => $v ) {
 				$this->smarty->assign($k, $v);

@@ -60,16 +60,22 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * The table's name
+	 *
+	 * @var string
 	 */
 	protected static $_table = '';
 
 	/**
 	 * The name of the PK field
+	 *
+	 * @var string
 	 */
 	protected static $_pk = '';
 
 	/**
 	 * Auto-nullable fields
+	 *
+	 * @var string[]
 	 */
 	protected static $_nullables = [];
 
@@ -77,16 +83,22 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Whether the db data have been loaded
+	 *
+	 * @var bool
 	 */
 	protected $_loaded = true;
 
 	/**
 	 * Magic getter cache
+	 *
+	 * @var array
 	 */
 	protected $_got = [];
 
 	/**
 	 * Any cache for this specific entity
+	 *
+	 * @var array
 	 */
 	protected $_cache = [];
 
@@ -301,7 +313,8 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
-	 *
+	 * @param string $clause
+	 * @return string
 	 */
 	static public function getQuery( $clause ) {
 		$szQuery = 'SELECT * FROM ' . static::$_table;
@@ -645,7 +658,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
-	 *
+	 * @return void
 	 */
 	public function init() {
 		$this->initCache();
@@ -685,6 +698,9 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 
+	/**
+	 * @return void
+	 */
 	static public function presave( array &$data ) {
 		self::presaveId($data);
 		self::presaveNullables($data);

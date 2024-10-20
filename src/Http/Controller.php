@@ -53,6 +53,7 @@ abstract class Controller {
 	protected string $actionPath = '';
 	protected string $actionMatch = '';
 
+	/** @var array */
 	protected $m_arrHooks				= [];
 	/** @var Hook[] */
 	protected array $hookObjects;
