@@ -82,20 +82,20 @@ abstract class db_generic {
 
 	/**
 	 * @param bool|array $first
-	 * @return array[]
+	 * @return list<array<string, int|string|null>>
 	 */
 	abstract public function fetch( $query, $first = false, $args = [] );
 
-	/** @return array */
+	/** @return array<int|string, int|string|null> */
 	abstract public function fetch_fields( $query, $args = [] );
 
-	/** @return string */
+	/** @return int|string|null */
 	abstract public function fetch_one( $query, $args = [] );
 
-	/** @return array */
+	/** @return array<int|string, array<string, int|string|null>> */
 	abstract public function fetch_by_field( $query, $field, $args = [] );
 
-	/** @return array */
+	/** @return array<int|string, list<array<string, int|string|null>>> */
 	abstract public function groupfetch_by_field( $query, $field, $args = [] );
 
 
@@ -241,7 +241,7 @@ abstract class db_generic {
 		return "'" . $this->escape($value) . "'";
 	}
 
-	/** @return array[] */
+	/** @return list<array<string, int|string|null>> */
 	public function select( $table, $where = '1', ...$args ) {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		$sql = 'SELECT * FROM ' . $table . ' WHERE ' . $where;
@@ -250,7 +250,7 @@ abstract class db_generic {
 
 	/**
 	 * @param string|array $where
-	 * @return array
+	 * @return array<string, int|string|null>
 	 */
 	public function select_first( $table, $where = '1', ...$args ) {
 		$where = $this->prepAndReplaceQMarks($where, $args);
@@ -258,7 +258,7 @@ abstract class db_generic {
 		return $this->fetch($sql, true);
 	}
 
-	/** @return array */
+	/** @return array<string, int|string|null> */
 	public function fetch_first( $sql, $args = [] ) {
 		$sql = $this->prepAndReplaceQMarks($sql, $args);
 		return $this->fetch($sql, true);
@@ -306,7 +306,7 @@ abstract class db_generic {
 
 	/**
 	 * @param string|array $where
-	 * @return array
+	 * @return array<int|string, int|string|null>
 	 */
 	public function select_fields( $table, $fields, $where = '1', ...$args ) {
 		$where = $this->prepAndReplaceQMarks($where, $args);
