@@ -17,9 +17,6 @@ abstract class db_generic {
 	public $times = [];
 	protected $transaction = 0;
 
-	public $log_errors = true;
-	public $except = false;
-
 
 
 	/** @return bool */
@@ -77,7 +74,7 @@ abstract class db_generic {
 
 
 
-	/** @return bool|object */
+	/** @return true|object */
 	abstract public function query( $query );
 
 	/**

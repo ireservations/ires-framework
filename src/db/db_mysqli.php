@@ -11,6 +11,8 @@ class db_mysqli extends db_generic {
 		$this->db_name = $f_szDb;
 		$this->dbCon = @new mysqli($f_szHost, $f_szUser, $f_szPass, $f_szDb);
 		if ( !$this->dbCon->connect_errno ) {
+			mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
 			// $this->dbCon->options(MYSQLI_SET_CHARSET_NAME, 'utf8');
 			$this->dbCon->options(MYSQLI_OPT_INT_AND_FLOAT_NATIVE, true);
 
@@ -82,12 +84,12 @@ class db_mysqli extends db_generic {
 		$this->num_queries++;
 
 		try {
-			$r = $this->dbCon->query($query);
-			$this->error = $r ? '' : $this->dbCon->error;
-			$this->errno = $r ? 0 : $this->dbCon->errno;
+			$result = $this->dbCon->query($query);
+			$this->error = $result ? '' : $this->dbCon->error;
+			$this->errno = $result ? 0 : $this->dbCon->errno;
 		}
 		catch ( mysqli_sql_exception $ex ) {
-			$r = false;
+			$result = false;
 			$this->error = $ex->getMessage();
 			$this->errno = $ex->getCode();
 		}
@@ -102,28 +104,23 @@ class db_mysqli extends db_generic {
 			}
 		}
 
-		if ( false === $r ) {
+		if ( false === $result ) {
 			if ( error_reporting() ) {
-				if ( $this->except ) {
-					$duplicate = strpos($this->error, 'Duplicate entry ') === 0;
-					$foreignKey = preg_match('#^Cannot (add|delete) or update a (child|parent) row: a foreign key constraint fails#', $this->error, $fkMatch);
-					if ( $duplicate ) {
-						throw new db_duplicate_exception($this->error . ' -- ' . $query);
-					}
-					elseif ( $foreignKey) {
-						throw new db_foreignkey_exception($this->error . ' -- ' . $query, $fkMatch[1]);
-					}
-					else {
-						throw new db_exception($this->error . ' -- ' . $query);
-					}
+				$duplicate = strpos($this->error, 'Duplicate entry ') === 0;
+				$foreignKey = preg_match('#^Cannot (add|delete) or update a (child|parent) row: a foreign key constraint fails#', $this->error, $fkMatch);
+				if ( $duplicate ) {
+					throw new db_duplicate_exception($this->error . ' -- ' . $query);
 				}
-				elseif ( $this->log_errors ) {
-					debug_exit("SQL ERROR: " . $this->error, $query);
+				elseif ( $foreignKey) {
+					throw new db_foreignkey_exception($this->error . ' -- ' . $query, $fkMatch[1]);
+				}
+				else {
+					throw new db_exception($this->error . ' -- ' . $query);
 				}
 			}
 		}
 
-		return $r;
+		return $result;
 	}
 
 	public function fetch( $query, $first = false, $args = [] ) {

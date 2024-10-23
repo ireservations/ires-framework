@@ -338,7 +338,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		$objects = static::byQuery($query, $f_szKeyField);
 
 		// Add to cache
-		if ( $objects && is_array($objects) ) {
+		if ( count($objects) ) {
 			self::_allToCache($objects);
 		}
 
@@ -480,9 +480,6 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		}
 
 		$records = static::$_db->fetch($f_szSqlQuery, $option);
-		if ( $records === false ) {
-			throw new db_exception(static::$_db->error, static::$_db->errno);
-		}
 
 		$objects = array();
 		foreach ( $records AS $record ) {
@@ -592,25 +589,22 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Inserts a record into this table
-	 * @return static|false
+	 * @return static
 	 */
 	static public function insert( array $data ) {
 		static::presave($data);
 
-		if ( static::$_db->insert(static::$_table, $data) ) {
-			$id = static::$_db->insert_id();
-			if ( static::$_pk && $id ) {
-				$data[static::$_pk] = $id;
-			}
-			$object = new static($data);
-			$object->_loaded = false;
-			if ( static::$_pk && $id  ) {
-				static::_oneToCache(static::class, $id, $object);
-			}
-			return $object;
+		static::$_db->insert(static::$_table, $data);
+		$id = static::$_db->insert_id();
+		if ( static::$_pk && $id ) {
+			$data[static::$_pk] = $id;
 		}
-
-		return false;
+		$object = new static($data);
+		$object->_loaded = false;
+		if ( static::$_pk && $id  ) {
+			static::_oneToCache(static::class, $id, $object);
+		}
+		return $object;
 	}
 
 
