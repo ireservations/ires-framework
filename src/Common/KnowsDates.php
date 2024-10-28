@@ -4,7 +4,10 @@ namespace Framework\Common;
 
 trait KnowsDates {
 
-	public static function getDates( $startDate, $endDate, $delta = 1 ) {
+	/**
+	 * @return list<string>
+	 */
+	public static function getDates( string $startDate, string $endDate, int $delta = 1 ) : array {
 		$date = $startDate;
 		$dates = [];
 		while ( $date <= $endDate ) {
@@ -15,36 +18,44 @@ trait KnowsDates {
 	}
 
 
-	public static function getFirstDateOfWeekday( $startDate, $weekdays ) {
-		$weekdays = (array)$weekdays;
+	/**
+	 * @param list<int> $weekdays
+	 */
+	public static function getFirstDateOfWeekday( int|string $startDate, $weekdays ) : string {
+		$weekdays = (array) $weekdays;
 
 		$iUtc = is_int($startDate) ? $startDate : static::mktime($startDate);
 
 		$tries = 0;
 		while ( $tries++ < 7 ) {
-			$iToday = (int)date('w', $iUtc);
+			$iToday = (int) date('w', $iUtc);
 			if ( in_array($iToday, $weekdays) ) {
 				return date('Y-m-d', $iUtc);
 			}
 			$iUtc = strtotime('+1 day', $iUtc);
 		}
 
-		return false;
+		return ''; // never
 	}
 
 
-	public static function getPeriod( $f_bWeekend, $f_bPeak ) {
-		return 'week' . ( $f_bWeekend ? 'end' : '' ) . ( $f_bPeak ? '_peak' : '' );
+	public static function isWeekend( string $f_szDate ) : bool {
+		$iToday = (int) date('w', static::mktime($f_szDate));
+		return 0 == $iToday || 6 == $iToday;
 	}
 
 
-	public static function isWeekend( $f_szDate ) {
-		$iToday = (int)date('w', static::mktime($f_szDate));
-		return ( 0 == $iToday || 6 == $iToday );
+	static function today() : string {
+		return date('Y-m-d');
 	}
 
 
-	public static function mktime( $f_szDate, $f_szTime = null ) {
+	static function tomorrow() : string {
+		return date('Y-m-d', strtotime('tomorrow'));
+	}
+
+
+	public static function mktime( ?string $f_szDate, ?string $f_szTime = null ) : int {
 		if ( !$f_szDate ) {
 			$f_szDate = date('Y-m-d');
 		}
@@ -67,8 +78,11 @@ trait KnowsDates {
 	}
 
 
-	public static function mondayAndSundayOfWeek( $time ) {
-		$time = is_numeric($time) ? (int)$time : static::mktime($time);
+	/**
+	 * @return array{string, string}
+	 */
+	public static function mondayAndSundayOfWeek( int|string $time ) : array {
+		$time = is_int($time) ? $time : static::mktime($time);
 
 		$iToday = (int)date('w', $time);
 
@@ -84,7 +98,7 @@ trait KnowsDates {
 	}
 
 
-	public static function nextFirstOfMonth( $date ) {
+	public static function nextFirstOfMonth( string $date ) : string {
 		$utc = static::mktime($date);
 
 		// 1st of month: return that

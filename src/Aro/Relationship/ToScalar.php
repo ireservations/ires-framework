@@ -20,11 +20,13 @@ abstract class ToScalar extends ActiveRecordRelationship {
 		$this->throughTable = $throughTable;
 	}
 
+	/** @return $this */
 	public function returnType( $type ) {
 		$this->returnType = $type;
 		return $this;
 	}
 
+	/** @return $this */
 	public function cast( $callback ) {
 		$this->cast = $callback;
 		return $this;

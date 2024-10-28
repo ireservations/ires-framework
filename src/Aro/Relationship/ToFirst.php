@@ -13,6 +13,7 @@ class ToFirst extends ActiveRecordRelationship {
 		parent::__construct($source, $targetClass, $relationColumn);
 	}
 
+	/** @return $this */
 	public function localColumn( $column ) {
 		$this->localColumn = $column;
 		return $this;

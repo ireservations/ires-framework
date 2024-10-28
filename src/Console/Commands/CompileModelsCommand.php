@@ -29,8 +29,8 @@ class CompileModelsCommand extends Command {
 	protected function configure() {
 		$this->setName('compile:models');
 
-		$this->addOption('class', null, InputOption::VALUE_REQUIRED);
-		$this->addOption('dump', null, InputOption::VALUE_REQUIRED);
+		$this->addOption('class', null, InputOption::VALUE_REQUIRED, 'Debug one model class');
+		$this->addOption('dump', null, InputOption::VALUE_REQUIRED, 'Database structure file for input for better column types');
 	}
 
 	protected function execute( InputInterface $input, OutputInterface $output ) {
@@ -310,7 +310,7 @@ class CompileModelsCommand extends Command {
 	protected function getMethodReturnType( ReflectionMethod $method ) : string {
 		$return = $origReturn = $this->getCommentType($method->getDocComment(), 'return');
 		if ( $return ) {
-			if ( strpos($return, '<') !== false || strpos($return, '|') !== false ) {
+			if ( strpos($return, '<') !== false ||  strpos($return, '{') !== false || strpos($return, '|') !== false ) {
 				// echo $method->getName() . ":\n";
 				return $return;
 			}
@@ -320,7 +320,7 @@ class CompileModelsCommand extends Command {
 			$nested = preg_match('#([\[\]]+)$#', $return, $match) ? $match[1] : '';
 			$return = rtrim($return, '[]');
 
-			if ( in_array($return, ['self', 'static', 'parent', 'array', 'int', 'float', 'string', 'bool']) ) {
+			if ( in_array($return, ['self', 'static', 'parent', 'array', 'int', 'float', 'string', 'non-falsy-string', 'bool']) ) {
 				return $nullable . $return . $nested;
 			}
 

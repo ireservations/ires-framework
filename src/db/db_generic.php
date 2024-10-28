@@ -2,13 +2,16 @@
 
 use Framework\Http\Exception\ServerException;
 
+/**
+ * @phpstan-type Record array<string, ?scalar>
+ */
 abstract class db_generic {
 
 	protected $m_columnDelimiter = '';
 
 	public $db_name = '';
-	public $error = '';
-	public $errno = 0;
+	public string $error = '';
+	public int $errno = 0;
 
 	public $num_queries = 0;
 	public $log_queries = false;
@@ -79,20 +82,20 @@ abstract class db_generic {
 
 	/**
 	 * @param bool|array $first
-	 * @return list<array<string, int|string|null>>
+	 * @return list<Record>
 	 */
 	abstract public function fetch( $query, $first = false, $args = [] );
 
-	/** @return array<int|string, int|string|null> */
+	/** @return array<int|string, ?scalar> */
 	abstract public function fetch_fields( $query, $args = [] );
 
-	/** @return int|string|null */
+	/** @return ?scalar */
 	abstract public function fetch_one( $query, $args = [] );
 
-	/** @return array<int|string, array<string, int|string|null>> */
+	/** @return array<int|string, Record> */
 	abstract public function fetch_by_field( $query, $field, $args = [] );
 
-	/** @return array<int|string, list<array<string, int|string|null>>> */
+	/** @return array<int|string, list<Record>> */
 	abstract public function groupfetch_by_field( $query, $field, $args = [] );
 
 
@@ -216,7 +219,7 @@ abstract class db_generic {
 		return $this->fetch_one($query);
 	}
 
-	/** @return array[] */
+	/** @return array<int|string, Record> */
 	public function select_by_field( $table, $field, $where = '1', ...$args ) {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		$sql = 'SELECT * FROM ' . $table . ' WHERE ' . $where;
@@ -238,7 +241,7 @@ abstract class db_generic {
 		return "'" . $this->escape($value) . "'";
 	}
 
-	/** @return list<array<string, int|string|null>> */
+	/** @return list<Record> */
 	public function select( $table, $where = '1', ...$args ) {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		$sql = 'SELECT * FROM ' . $table . ' WHERE ' . $where;
@@ -247,7 +250,7 @@ abstract class db_generic {
 
 	/**
 	 * @param string|array $where
-	 * @return array<string, int|string|null>
+	 * @return Record
 	 */
 	public function select_first( $table, $where = '1', ...$args ) {
 		$where = $this->prepAndReplaceQMarks($where, $args);
@@ -255,7 +258,7 @@ abstract class db_generic {
 		return $this->fetch($sql, true);
 	}
 
-	/** @return array<string, int|string|null> */
+	/** @return Record */
 	public function fetch_first( $sql, $args = [] ) {
 		$sql = $this->prepAndReplaceQMarks($sql, $args);
 		return $this->fetch($sql, true);
@@ -294,7 +297,7 @@ abstract class db_generic {
 		return $count !== false ? (int) $count : false;
 	}
 
-	/** @return array */
+	/** @return array<int, list<Record>> */
 	public function groupselect_by_field( $table, $field, $where = '1', ...$args ) {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		$sql = 'SELECT * FROM ' . $table . ' WHERE ' . $where;
@@ -303,7 +306,7 @@ abstract class db_generic {
 
 	/**
 	 * @param string|array $where
-	 * @return array<int|string, int|string|null>
+	 * @return array<int|string, ?scalar>
 	 */
 	public function select_fields( $table, $fields, $where = '1', ...$args ) {
 		$where = $this->prepAndReplaceQMarks($where, $args);

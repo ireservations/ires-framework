@@ -52,7 +52,7 @@ class ToMany extends ActiveRecordRelationship {
 		return $targets;
 	}
 
-	public function toCount() {
+	public function toCount() : ToOneScalarTable {
 		$table = call_user_func([$this->target, '_table']);
 		return (new ToOneScalarTable($this->source, 'count(1)', $table, $this->foreign))
 			->where($this->where)

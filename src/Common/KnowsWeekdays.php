@@ -4,10 +4,15 @@ namespace Framework\Common;
 
 trait KnowsWeekdays {
 
-	static public $weekdayShortLength = 3;
-	static public $weekdaysFull = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+	static public int $weekdayShortLength = 3;
 
-	public static function checkWeekday( &$weekday ) {
+	/** @var array<int, string> */
+	static public array $weekdaysFull = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+	/**
+	 * @param-out string $weekday
+	 */
+	public static function checkWeekday( &$weekday ) : bool {
 		$enFull = self::$weekdaysFull;
 		$enShort = array_map(function($day) {
 			return substr($day, 0, self::$weekdayShortLength);
@@ -40,7 +45,7 @@ trait KnowsWeekdays {
 	}
 
 
-	public static function getWeekday( $f_iWeekday, $length = 0 ) {
+	public static function getWeekday( int $f_iWeekday, int $length = 0 ) : string {
 		// 0 = SUNDAY
 		$szWeekday = trans('WEEKDAY_' . ($f_iWeekday % 7));
 

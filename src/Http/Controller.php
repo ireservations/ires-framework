@@ -416,7 +416,7 @@ abstract class Controller {
 		else {
 			debug_exit("Uncaught " . get_class($ex) . ": " . escapehtml($ex->getMessage()) . ' on ' . basename($ex->getFile()) . ':' . $ex->getLine(), $ex);
 
-			$response = new TextResponse("UNKNOWN ERROR: " . $ex->getMessage(), 500);
+			$response = new TextResponse("UNKNOWN ERROR: " . get_class($ex), 500);
 		}
 
 		return $response;

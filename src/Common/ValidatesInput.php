@@ -8,9 +8,14 @@ trait ValidatesInput {
 
 	/**
 	 * checkFloat()
+	 *
+	 * @param-out string $time
+	 * @return float|false
 	 */
 	public static function checkFloat( &$number ) {
-		$a = str_replace(' ', '', str_replace(',', '.', (string) $number));
+		$number = (string) $number;
+
+		$a = str_replace(' ', '', str_replace(',', '.', $number));
 		if ( !is_numeric($a) ) {
 			return false;
 		}
@@ -22,10 +27,15 @@ trait ValidatesInput {
 
 	/**
 	 * checkInt()
+	 *
+	 * @param-out int|string $number
+	 * @return int|false
 	 */
 	public static function checkInt( &$number, $positive = false ) {
-		$a = str_replace(' ', '', str_replace(',', '.', (string)$number));
-		if ( (string)(int)$a !== (string)$a ) {
+		$number = (string) $number;
+
+		$a = str_replace(' ', '', str_replace(',', '.', $number));
+		if ( (string) (int) $a !== $a ) {
 			return false;
 		}
 
@@ -46,10 +56,14 @@ trait ValidatesInput {
 	 *
 	 * Valid times are: 7:20, 18, 18:0, 12:51, 0:0, 24:0, 4:30pm (=16:30), 12am (=24:00 or 00:00), 19pm (=19:00), 19:4am (=19:40), 1:2:3 (=01:20), etc
 	 *
+	 * @param-out string $time
 	 * @param bool $f_bNoMaxHours If true, 24:00 and 26:00 are valid times. If false they are converted to 00:00 and 02:00
+	 * @return non-falsy-string|false
 	 */
 	public static function checkTime( &$time, $f_bNoMaxHours = true ) {
-		if ( !preg_match('/^(\d\d?)(?:(?:\:|\.)(\d\d?))?(?:(?:\:|\.)\d\d?)?(?: ?(am|pm))?$/', strtolower((string)$time), $parrMatch) ) {
+		$time = (string) $time;
+
+		if ( !preg_match('/^(\d\d?)(?:(?:\:|\.)(\d\d?))?(?:(?:\:|\.)\d\d?)?(?: ?(am|pm))?$/', strtolower($time), $parrMatch) ) {
 			return false;
 		}
 
@@ -80,12 +94,17 @@ trait ValidatesInput {
 	 * All combinations of y, m, d are valid: y-m-d (system), d-m-y (Dutch), m/d/y, m.d.y (American), d.m.y (German?) etc
 	 *
 	 * Special: "today", "tomorrow"
+	 *
+	 * @param-out string $date
+	 * @return non-falsy-string|false
 	 */
 	static public function checkDate( &$date, $format = null ) {
-		if ( $date == 'today' ) {
+		$date = (string) $date;
+
+		if ( $date === 'today' ) {
 			return $date = date('Y-m-d');
 		}
-		else if ( $date == 'tomorrow' ) {
+		else if ( $date === 'tomorrow' ) {
 			return $date = date('Y-m-d', strtotime('+1 day'));
 		}
 
@@ -94,13 +113,13 @@ trait ValidatesInput {
 
 		// Use named groups in regex to identify Year, Month & Day
 		$regexp = '#^' . strtr(preg_quote($format, '#'), array(
-				'y' => '(?P<year>(?:1|2)\d{3})',
-				'm' => '(?P<month>\d\d?)',
-				'd' => '(?P<day>\d\d?)',
-			)) . '$#';
+			'y' => '(?P<year>(?:1|2)\d{3})',
+			'm' => '(?P<month>\d\d?)',
+			'd' => '(?P<day>\d\d?)',
+		)) . '$#';
 
 		// Match input
-		if ( preg_match($regexp, (string)$date, $parrMatch) ) {
+		if ( preg_match($regexp, $date, $parrMatch) ) {
 			// Reformat input to YYYY-MM-DD
 			$szDate = implode('-', [
 				$parrMatch['year'],

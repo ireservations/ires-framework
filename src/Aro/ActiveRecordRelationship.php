@@ -48,36 +48,43 @@ abstract class ActiveRecordRelationship {
 
 	abstract protected function fetchAll( array $objects );
 
+	/** @return $this */
 	public function name( $name ) {
 		$this->name = $name;
 		return $this;
 	}
 
+	/** @return $this */
 	public function eager( array $names ) {
 		$this->eager = $names;
 		return $this;
 	}
 
+	/** @return $this */
 	public function where( $where, ...$params ) {
 		$this->where = $this->source->db->qmarks($where, ...$params);
 		return $this;
 	}
 
+	/** @return $this */
 	public function order( $order ) {
 		$this->order = $order;
 		return $this;
 	}
 
+	/** @return $this */
 	public function key( $key ) {
 		$this->key = $key;
 		return $this;
 	}
 
+	/** @return $this */
 	public function default( $default ) {
 		$this->default = $default;
 		return $this;
 	}
 
+	/** @return $this */
 	public function join( $table, $on, ...$params ) {
 		$on = $this->source->db->qmarks($on, ...$params);
 		$this->joins[] = [$table, $on];

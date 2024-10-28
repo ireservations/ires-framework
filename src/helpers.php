@@ -16,13 +16,23 @@ function trans( $key, array $options = [] ) {
 	return $g_language->translate($key, $options);
 }
 
-function array_first( $arr ) {
+/**
+ * @template T
+ * @param array<array-key, T> $arr
+ * @return ($arr is non-empty-array ? T : T|null)
+ */
+function array_first( array $arr ) : mixed {
 	if ( count($arr) == 0 ) return null;
 
 	reset($arr);
 	return current($arr);
 }
 
+/**
+ * @template T
+ * @param array<array-key, T> $arr
+ * @return ($arr is non-empty-array ? T : T|null)
+ */
 function array_last( $arr ) {
 	if ( count($arr) == 0 ) return null;
 
@@ -76,7 +86,7 @@ function array_merge_recursive_distinct( array $array1, array $array2 ) : array 
 
 /**
  * @param array<array-key, AppActiveRecordObject> $objects
- * @return array<array-key, string>
+ * @return array<array-key, int|float|string>
  */
 function aro_options( array $objects, ?string $label = null, ?string $key = null, bool $sort = false ) : array {
 	$options = array();
@@ -120,7 +130,7 @@ function aro_key( array $objects, ?string $column = null ) : array {
 	return $keyed;
 }
 
-function array_flatten( $array ) {
+function array_flatten( $array ) : array {
 	$items = [];
 	foreach ( $array as $item ) {
 		if ( is_array($item) ) {
@@ -134,7 +144,7 @@ function array_flatten( $array ) {
 	return $items;
 }
 
-function array_pluck( $array, $column, $indexColumn = null ) {
+function array_pluck( $array, $column, $indexColumn = null ) : array {
 	$out = [];
 	foreach ( $array as $key => $item ) {
 		$value = array_get($item, $column);
@@ -160,6 +170,7 @@ function filter_xss( $html ) {
 	return $html;
 }
 
+/** @return string */
 function escapehtml( $string ) {
 	if ( $string instanceof HtmlString ) {
 		return $string;

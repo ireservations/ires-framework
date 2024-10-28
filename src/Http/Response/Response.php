@@ -29,6 +29,7 @@ abstract class Response implements ArrayAccess {
 		$this->data = $data;
 	}
 
+	/** @return $this */
 	public function contentType( $type, $charset = null ) {
 		$this->contentType = $type;
 
@@ -42,6 +43,7 @@ abstract class Response implements ArrayAccess {
 		return $this;
 	}
 
+	/** @return $this */
 	public function download( $filename ) {
 		$this->downloadFilename = $filename;
 		return $this;

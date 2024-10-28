@@ -6,7 +6,8 @@ use Framework\Http\Exception\InvalidInputException;
 
 trait VetsInput {
 
-	protected $vettedInput = [];
+	/** @var array<string, mixed> */
+	protected array $vettedInput = [];
 
 	/**
 	 *

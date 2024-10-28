@@ -6,14 +6,15 @@ use Exception;
 
 class InvalidInputException extends Exception implements FullMessageException {
 
-	protected array $invalid = [];
-
-	public function __construct( ?string $message, array $invalid = [] ) {
+	public function __construct(
+		?string $message,
+		/** @var array<array-key, string> */
+		protected array $invalid = [],
+	) {
 		parent::__construct($message ?? '');
-
-		$this->invalid = $invalid;
 	}
 
+	/** @return array<array-key, string> */
 	public function getInvalids() : array {
 		return $this->invalid;
 	}

@@ -27,32 +27,24 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 
-	/**
-	 * The global, default database object
-	 *
-	 * @var db_generic
-	 */
-	protected static $_db;
+	protected static db_generic $_db;
 
-	public static function setDbObject( db_generic $db ) {
+	public static function setDbObject( db_generic $db ) : void {
 		self::$_db = $db;
 	}
 
-	public static function getDbObject() {
+	public static function getDbObject() : db_generic {
 		return self::$_db;
 	}
 
 
 
-	/**
-	 * @var ActiveRecordCache
-	 */
-	protected static $_objectCache;
+	protected static ?ActiveRecordCache $_objectCache = null;
 
 	/**
 	 *
 	 */
-	final public static function setCache( ActiveRecordCache $cache = null ) {
+	final public static function setCache( ?ActiveRecordCache $cache = null ) : void {
 		self::$_objectCache = $cache;
 	}
 
@@ -137,25 +129,23 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 
-	protected function to_one( $targetClass, $foreignColumn ) {
+	protected function to_one( $targetClass, $foreignColumn ) : Relationship\ToOne {
 		return new Relationship\ToOne($this, $targetClass, $foreignColumn);
 	}
 
-	protected function to_first( $targetClass, $relationColumn ) {
+	protected function to_first( $targetClass, $relationColumn ) : Relationship\ToFirst {
 		return new Relationship\ToFirst($this, $targetClass, $relationColumn);
 	}
 
-	protected function to_one_scalar_table( $targetColumn, $throughTable, $foreignColumn, $localColumn = null ) {
+	protected function to_one_scalar_table( $targetColumn, $throughTable, $foreignColumn, $localColumn = null ) : Relationship\ToOneScalarTable {
 		return new Relationship\ToOneScalarTable($this, $targetColumn, $throughTable, $foreignColumn, $localColumn);
 	}
 
-	protected function to_many( $targetClass, $foreignColumn ) {
+	protected function to_many( $targetClass, $foreignColumn ) : Relationship\ToMany {
 		return new Relationship\ToMany($this, $targetClass, $foreignColumn);
 	}
 
-	/** @return ToOneScalarTable */
-	protected function to_count( $targetClass, $foreignColumn ) {
-		/** @var self $targetClass */
+	protected function to_count( $targetClass, $foreignColumn ) : Relationship\ToOneScalarTable {
 		$targetTable = call_user_func([$targetClass, '_table']);
 		return (new Relationship\ToOneScalarTable($this, 'count(1)', $targetTable, $foreignColumn))
 			->default(0)
@@ -163,23 +153,22 @@ abstract class ActiveRecordObject implements ArrayAccess {
 			->returnType('int');
 	}
 
-	/** @return ToOneScalarTable */
-	protected function to_count_table( $targetTable, $foreignColumn ) {
+	protected function to_count_table( $targetTable, $foreignColumn ) : Relationship\ToOneScalarTable {
 		return (new Relationship\ToOneScalarTable($this, 'count(1)', $targetTable, $foreignColumn))
 			->default(0)
 			->cast('intval')
 			->returnType('int');
 	}
 
-	protected function to_many_through( $targetClass, $throughRelationsip ) {
+	protected function to_many_through( $targetClass, $throughRelationsip ) : Relationship\ToManyThrough {
 		return new Relationship\ToManyThrough($this, $targetClass, $throughRelationsip);
 	}
 
-	protected function to_many_through_property( $targetClass, $throughProperty ) {
+	protected function to_many_through_property( $targetClass, $throughProperty ) : Relationship\ToManyThroughProperty {
 		return new Relationship\ToManyThroughProperty($this, $targetClass, $throughProperty);
 	}
 
-	protected function to_many_scalar( $targetColumn, $throughTable, $foreignColumn, $localColumn = null ) {
+	protected function to_many_scalar( $targetColumn, $throughTable, $foreignColumn, $localColumn = null ) : Relationship\ToManyScalar {
 		return new Relationship\ToManyScalar($this, $targetColumn, $throughTable, $foreignColumn, $localColumn);
 	}
 
@@ -192,7 +181,6 @@ abstract class ActiveRecordObject implements ArrayAccess {
 			return [];
 		}
 
-		/** @var ActiveRecordRelationship $relationship */
 		$relationship = call_user_func([new static(), "relate_$name"]);
 		return $relationship->name($name)->loadAll($objects);
 	}
@@ -306,7 +294,6 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	protected function resolveRelationship( $name ) {
 		$method = [$this, 'relate_' . $name];
-		/** @var ActiveRecordRelationship $relationship */
 		$relationship = call_user_func($method);
 		return $relationship->name($name)->load();
 	}

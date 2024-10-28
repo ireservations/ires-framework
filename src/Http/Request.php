@@ -6,15 +6,15 @@ use App\Services\Session\User;
 
 class Request {
 
-	static function https() {
+	static function https() : bool {
 		return ($_SERVER['SERVER_PORT'] ?? '') === '443' || ($_SERVER['HTTPS'] ?? '') === 'on';
 	}
 
-	static function scheme() {
+	static function scheme() : string {
 		return self::https() ? 'https://' : 'http://';
 	}
 
-	static function origin() {
+	static function origin() : string {
 		$host = self::host();
 		$port = self::port();
 		$port = in_array($port, [80, 443]) ? '' : ':' . $port;
@@ -22,36 +22,36 @@ class Request {
 		return self::scheme() . $host . $port;
 	}
 
-	static function port() {
+	static function port() : int {
 		return $_SERVER['SERVER_PORT'] ?? (self::https() ? 443 : 80);
 	}
 
-	static function host() {
+	static function host() : string {
 		return $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
 	}
 
-	static function ip() {
+	static function ip() : string {
 		return $_SERVER['REMOTE_ADDR'] ?? '';
 	}
 
-	static function ua() {
+	static function ua() : string {
 		return $_SERVER['HTTP_USER_AGENT'] ?? '';
 	}
 
-	static function referrer() {
+	static function referrer() : string {
 		return $_SERVER['HTTP_REFERER'] ?? '';
 	}
 
-	static function method() {
+	static function method() : string {
 		return strtoupper($_SERVER['REQUEST_METHOD'] ?? '');
 	}
 
 
-	static function debug() {
+	static function debug() : bool {
 		return DEBUG;
 	}
 
-	static function semidebug() {
+	static function semidebug() : bool {
 		static $cache = null;
 		if ( $cache === null ) {
 			$cache = self::debug() || in_array(self::ip(), SEMIDEBUG_IPS);
@@ -61,13 +61,13 @@ class Request {
 	}
 
 
-	static function mobileDevice() {
+	static function mobileDevice() : bool {
 		$ua = strtolower(self::ua());
 		return is_int(strpos($ua, 'mobile')) || is_int(strpos($ua, 'opera mini')) || is_int(strpos($ua, 'opera mobi'));
 	}
 
 
-	static function uri() {
+	static function uri() : string {
 		static $cache = null;
 		if ( $cache === null ) {
 			$uri = explode('?', static::fullUri());
@@ -77,7 +77,7 @@ class Request {
 		return $cache;
 	}
 
-	static function fullUri( $appendable = false ) {
+	static function fullUri( bool $appendable = false ) : string {
 		static $cache = null;
 		if ( $cache === null ) {
 			$cache = self::cli() ? 'CLI' : ($_SERVER['REQUEST_URI'] ?? '');
@@ -92,7 +92,7 @@ class Request {
 	}
 
 
-	static function ajax() {
+	static function ajax() : bool {
 		return !empty($_REQUEST['ajax']) || !empty($_SERVER['HTTP_AJAX']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') == 'xmlhttprequest';
 	}
 
@@ -106,20 +106,24 @@ class Request {
 	}
 
 
-	static function cli() {
+	static function cli() : bool {
 		return php_sapi_name() === 'cli';
 	}
 
-	static function cliDirectory() {
+	static function cliDirectory() : string {
 		return $_SERVER['PWD'] ?? '';
 	}
 
-	static function cliCommand() {
+	static function cliCommand() : string {
 		return implode(' ', $_SERVER['argv'] ?? []);
 	}
 
 
-	static function action( ...$actions ) {
+	/**
+	 * @param list<string> $actions
+	 * @return list<bool>
+	 */
+	static function action( ...$actions ) : array {
 		$_action = $_REQUEST['_action'] ?? '';
 		$bools = array_map(function( $name ) use ( $_action ) {
 			return $_action === $name;
