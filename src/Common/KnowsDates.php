@@ -19,7 +19,7 @@ trait KnowsDates {
 
 
 	/**
-	 * @param list<int> $weekdays
+	 * @param int|list<int> $weekdays
 	 */
 	public static function getFirstDateOfWeekday( int|string $startDate, $weekdays ) : string {
 		$weekdays = (array) $weekdays;

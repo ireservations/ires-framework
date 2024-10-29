@@ -35,6 +35,11 @@ abstract class db_generic {
 
 	abstract public function rollback();
 
+	/**
+	 * @template T
+	 * @param (Closure(self): T) $callable
+	 * @return T
+	 */
 	public function transaction( Closure $callable ) : mixed {
 		try {
 			if ($this->transaction == 0) {

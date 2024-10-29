@@ -409,7 +409,7 @@ class CompileModelsCommand extends Command {
 		return $props;
 	}
 
-	protected function getTemplate( $name ) : string {
+	protected function getTemplate( string $name ) : string {
 		return file_get_contents(dirname(__DIR__) . "/templates/{$name}.php.txt");
 	}
 

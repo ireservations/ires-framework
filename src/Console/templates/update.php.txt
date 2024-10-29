@@ -1,0 +1,7 @@
+<?php
+__USES__
+return function(db_generic $db) {
+
+	__CODE__
+
+};

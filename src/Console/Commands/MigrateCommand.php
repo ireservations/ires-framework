@@ -3,6 +3,7 @@
 namespace Framework\Console\Commands;
 
 use db_exception;
+use Closure;
 use Framework\Console\Command;
 use Exception;
 use Symfony\Component\Console\Input\InputInterface;
@@ -13,11 +14,12 @@ class MigrateCommand extends Command {
 
 	protected function configure() {
 		$this->setName('migrate');
-		$this->addOption('test', null, InputOption::VALUE_NONE);
-		$this->addOption('table', null, InputOption::VALUE_NONE);
-		$this->addOption('undo', null, InputOption::VALUE_NONE);
-		$this->addOption('status', null, InputOption::VALUE_NONE);
-		$this->addOption('create', null, InputOption::VALUE_REQUIRED);
+		$this->addOption('test', null, InputOption::VALUE_NONE, "Show new updates in order, but don't run them");
+		$this->addOption('table', null, InputOption::VALUE_NONE, "Create migrations table");
+		$this->addOption('convert-to-closures', null, InputOption::VALUE_NONE, "Convert old-style update files to new-style closures");
+		$this->addOption('undo', null, InputOption::VALUE_NONE, "Undo last update (only deletes last migration record from table!)");
+		$this->addOption('status', null, InputOption::VALUE_NONE, "Show summary of done vs todo updates");
+		$this->addOption('create', null, InputOption::VALUE_REQUIRED, "Create a new update file");
 	}
 
 	protected function execute( InputInterface $input, OutputInterface $output ) {
@@ -25,9 +27,14 @@ class MigrateCommand extends Command {
 		$undo = $input->getOption('undo');
 		$status = $input->getOption('status');
 		$create = $input->getOption('create');
+		$convert = $input->getOption('convert-to-closures');
 
 		if ( $table ) {
 			return $this->executeTable($input, $output);
+		}
+
+		if ( $convert ) {
+			return $this->executeConvertToClosures($input, $output);
 		}
 
 		if ( $create ) {
@@ -43,6 +50,56 @@ class MigrateCommand extends Command {
 		}
 
 		return $this->executeMigrate($input, $output);
+	}
+
+	protected function executeConvertToClosures( InputInterface $input, OutputInterface $output ) {
+		$test = $input->getOption('test');
+
+		$files = $this->getUpdates();
+		$codeTemplate = $this->getTemplate('update');
+
+		$converted = 0;
+		foreach ( $files as $name => $filepath ) {
+			$code = file_get_contents($filepath);
+
+			if ( str_contains($code, "\nreturn function(") ) continue;
+
+			$code = trim(str_replace('<?php', '', $code));
+			$code = trim(str_replace('global $db;', '', $code));
+			$code = trim(str_replace('/*'.'* @var \db_generic $db */', '', $code));
+			$code = trim(str_replace('/*'.'* @var db_generic $db */', '', $code));
+
+			$uses = '';
+			if ( preg_match_all('#use [\\w+\\\\]+;#', $code, $matches) ) {
+				$uses = "\n" . implode("\n", $matches[0]) . "\n";
+
+				foreach ( $matches[0] as $oneUse ) {
+					$code = trim(str_replace($oneUse, '', $code));
+				}
+			}
+
+			$innerCode = str_replace("\n", "\n\t", $code);
+			$innerCode = str_replace("\n\t\n", "\n\n", $innerCode);
+			$innerCode = str_replace("\n\t\n", "\n\n", $innerCode);
+
+			$outerCode = str_replace('__CODE__', $innerCode, $codeTemplate);
+			$outerCode = str_replace('__USES__', $uses, $outerCode);
+
+			if ( $test ) {
+				echo "\n\n\n\n\n\n\n$name\n\n$outerCode\n\n\n\n\n\n\n\n\n";
+			}
+			else {
+				file_put_contents($filepath, $outerCode);
+			}
+
+			$converted++;
+		}
+
+		if ( !$test ) {
+			echo "$converted / " . count($files) . " files updated. See dirty working dir.\n";
+		}
+
+		return 0;
 	}
 
 	protected function executeCreate( InputInterface $input, OutputInterface $output ) {
@@ -64,16 +121,10 @@ class MigrateCommand extends Command {
 
 		$filename = "auto-$number-$create.php";
 		$filepath = SCRIPT_ROOT . "/_updates/$filename";
-		file_put_contents($filepath, trim('
-<?php
 
-/** @var \db_generic $db */
-global $db;
-
-$db->query("
-
-");
-		') . "\n\n");
+		$codeTemplate = $this->getTemplate('update');
+		$outerCode = str_replace('__CODE__', '', $codeTemplate);
+		file_put_contents($filepath, $outerCode);
 
 		echo "$filename\n";
 
@@ -169,11 +220,14 @@ $db->query("
 					continue;
 				}
 
-				$db = $this->db;
-				// $db is used in the update
-				require $file;
+				$db = $this->db; // $db is used in old-style update
 
-				echo "~~ success ~~\n";
+				$callback = require $file;
+				if ( $callback instanceof Closure ) {
+					$callback($db);
+				}
+
+				echo "\n~~ success ~~\n";
 
 				// update status
 				$this->saveDone($name);
@@ -255,6 +309,10 @@ $db->query("
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 		");
 		echo "Migrations table created.\n";
+	}
+
+	protected function getTemplate( string $name ) : string {
+		return file_get_contents(dirname(__DIR__) . "/templates/{$name}.php.txt");
 	}
 
 }
