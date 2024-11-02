@@ -7,8 +7,10 @@ trait LogsChanges {
 	abstract function getPKValue();
 	// abstract static function presave( array &$data );
 
+	/** @return void */
 	abstract public function _logChangesLog( $type, $changes );
 
+	/** @return void */
 	public function _logChanges( $type, $fields, $updates ) {
 		static::presave($updates);
 

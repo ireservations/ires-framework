@@ -8,6 +8,7 @@ trait ValidatesTokens {
 
 	abstract function getPKValue();
 
+	/** @return int|string */
 	public function tokenId() {
 		return $this->getPKValue();
 	}
@@ -16,11 +17,11 @@ trait ValidatesTokens {
 		return User::checkToken(get_class($this) . ':' . $this->tokenId(), $token);
 	}
 
-	public function token() {
+	public function token() : string {
 		return User::makeToken(get_class($this) . ':' . $this->tokenId());
 	}
 
-	public function _token() {
+	public function _token() : string {
 		return '_token=' . $this->token();
 	}
 

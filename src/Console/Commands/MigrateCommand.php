@@ -124,6 +124,7 @@ class MigrateCommand extends Command {
 
 		$codeTemplate = $this->getTemplate('update');
 		$outerCode = str_replace('__CODE__', '', $codeTemplate);
+		$outerCode = str_replace('__USES__', '', $outerCode);
 		file_put_contents($filepath, $outerCode);
 
 		echo "$filename\n";

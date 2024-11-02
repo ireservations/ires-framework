@@ -76,12 +76,14 @@ abstract class Response implements ArrayAccess {
 		@header('X-Br-Memory: ' . number_format(memory_get_peak_usage()/1e6, 1) . 'M');
 	}
 
+	/** @return void */
 	public function printHeaders() {
 		$this->printResponseCode();
 		$this->printDebugHeaders();
 		$this->printContentType();
 	}
 
+	/** @return void */
 	abstract public function printContent();
 
 	public function offsetExists( $name ) : bool {
