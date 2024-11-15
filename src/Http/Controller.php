@@ -54,7 +54,9 @@ abstract class Controller {
 	protected string $actionMatch = '';
 
 	/** @var array<string, mixed> */
-	protected $m_arrHooks				= [];
+	protected $m_arrHooks = [];
+	/** @var array<string, mixed> */
+	protected const HOOKS = [];
 	/** @var list<Hook> */
 	protected array $hookObjects;
 
@@ -320,7 +322,7 @@ abstract class Controller {
 
 
 	public function getRawHooks() : array {
-		return $this->m_arrHooks;
+		return static::HOOKS ?: $this->m_arrHooks;
 	}
 
 	/**
