@@ -3,6 +3,8 @@
 namespace Framework\Http;
 
 use App\Services\Http\AppController;
+use ReflectionClass;
+use ReflectionMethod;
 
 class ActionMapper {
 
@@ -17,6 +19,23 @@ class ActionMapper {
 		// }
 
 		return $this->createMapping();
+	}
+
+	protected function createMappingFromReflection() : array {
+		$reflClass = new ReflectionClass($this->app);
+
+		$hooks = [];
+		foreach ( $reflClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method ) {
+			foreach ( $method->getAttributes() as $attr ) {
+				$verb = explode('\\', $attr->getName());
+				$verb = $verb[count($verb) - 1];
+				if ( in_array($verb, ['Get', 'Post']) ) {
+					$hooks[] = Hook::withMethod($attr->getArguments()[0], $method->getName(), strtolower($verb));
+				}
+			}
+		}
+
+		return $hooks;
 	}
 
 	protected function createMapping() : array {
@@ -39,6 +58,10 @@ class ActionMapper {
 			else {
 				$hooks[] = Hook::withAction($path, $hook);
 			}
+		}
+
+		if ( !count($hooks) ) {
+			return $this->createMappingFromReflection();
 		}
 
 		return $hooks;
