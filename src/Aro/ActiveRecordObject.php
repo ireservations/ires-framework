@@ -123,6 +123,9 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		static::$_db->delete(static::$_table, $conditions, ...$args);
 	}
 
+	/**
+	 * @param array<string, mixed> $update
+	 */
 	static public function updates( array $update, $conditions, ...$args ) {
 		static::$_db->update(static::$_table, $update, $conditions, ...$args);
 	}
@@ -174,9 +177,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
-	 * @return array
+	 * @param list<self> $objects
+	 * @return list<self>
 	 */
-	static public function eager( $name, array $objects ) {
+	static public function eager( $name, array $objects ) : array {
 		if ( count($objects) == 0 ) {
 			return [];
 		}
@@ -186,9 +190,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	}
 
 	/**
-	 * @return array[]
+	 * @param list<self> $objects
+	 * @ return array<string, list<self>>
 	 */
-	static public function eagers( array $objects, array $names ) {
+	static public function eagers( array $objects, array $names ) : void {
 		$return = [];
 		foreach ( $names as $name ) {
 			$parts = explode('.', $name);
@@ -202,7 +207,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 			$return[$name] = call_user_func([$class, 'eager'], end($parts), $sources);
 		}
 
-		return $return;
+		// return $return;
 	}
 
 
@@ -576,6 +581,8 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Inserts a record into this table
+	 *
+	 * @param array<string, mixed> $data
 	 * @return static
 	 */
 	static public function insert( array $data ) {
@@ -680,6 +687,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
+	 * @param array<string, mixed> $data
 	 * @return void
 	 */
 	static public function presave( array &$data ) {
@@ -687,6 +695,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		self::presaveNullables($data);
 	}
 
+	/**
+	 * @param array<string, mixed> $data
+	 * @return void
+	 */
 	static public function presaveNullables( array &$data ) {
 		foreach ( static::$_nullables as $column ) {
 			if ( isset($data[$column]) && ( $data[$column] === '' || $data[$column] === [] ) ) {
@@ -695,10 +707,18 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		}
 	}
 
+	/**
+	 * @param array<string, mixed> $data
+	 * @return void
+	 */
 	static public function presaveId( array &$data ) {
 		unset($data['id']);
 	}
 
+	/**
+	 * @param array<string, mixed> $data
+	 * @return void
+	 */
 	static public function presaveTrim( array &$data ) {
 		foreach ( $data as $column => $value ) {
 			if ( is_string($value) ) {
@@ -707,6 +727,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		}
 	}
 
+	/**
+	 * @param array<string, mixed> $data
+	 * @return void
+	 */
 	static public function presaveCSVs( array &$data, ...$fields ) {
 		foreach ( $fields as $field ) {
 			if ( isset($data[$field]) && is_array($data[$field]) ) {
@@ -715,6 +739,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		}
 	}
 
+	/**
+	 * @param array<string, mixed> $data
+	 * @return void
+	 */
 	static public function presaveFloats( array &$data, ...$fields ) {
 		foreach ( $fields as $field ) {
 			if ( isset($data[$field]) ) {
@@ -725,7 +753,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 
-	protected function _cache( $type, $key, callable $callback ) {
+	protected function _cache( string $type, string $key, callable $callback ) {
 		if ( !isset($this->_cache[$type][$key]) ) {
 			$value = $callback($this);
 			$this->_cache[$type][$key] = isset($value) ? $value : false;
@@ -734,11 +762,6 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		return $this->_cache[$type][$key];
 	}
 
-
-	public function toggle( $field, $value = null ) {
-		$newValue = (int)( $value === null ? !$this->$field : (bool)$value );
-		return $this->update(array($field => $newValue));
-	}
 
 
 	public function extractOnly( $props ) {
@@ -752,6 +775,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
+	 * @param array<string, mixed> $updates
 	 * @return bool
 	 */
 	public function update( $updates ) {

@@ -31,6 +31,9 @@ use db_exception;
 use db_foreignkey_exception;
 use db_generic;
 
+/**
+ * @phpstan-type AssocArray array<string, mixed>
+ */
 abstract class Controller {
 
 	use ChecksAccess;
@@ -38,12 +41,14 @@ abstract class Controller {
 	const INPUT_OPTIONAL = false;
 	const INPUT_REQUIRED = true;
 
+	/** @var array<string, string> */
 	static public array $action_path_wildcards = array(
 		'INT'		=> '(\d+)',
 		'STRING'	=> '([^/]+)',
 		'DATE'		=> '(today|tomorrow|\d\d\d\d\-\d\d?\-\d\d?)',
 		'TIME'		=> '(\d\d?:\d\d)',
 	);
+	/** @var array<string, string> */
 	static public array $action_path_wildcard_aliases = array(
 		'#' => 'INT',
 		'*' => 'STRING',
@@ -53,22 +58,26 @@ abstract class Controller {
 	protected string $actionPath = '';
 	protected string $actionMatch = '';
 
-	/** @var array<string, mixed> */
+	/** @var AssocArray */
 	protected $m_arrHooks = [];
-	/** @var array<string, mixed> */
+	/** @var AssocArray */
 	protected const HOOKS = [];
 	/** @var list<Hook> */
 	protected array $hookObjects;
 
 	protected ?ReflectionClass $ctrlrReflection = null;
+	/** @var AssocArray */
 	protected array $ctrlrOptions = [
 		'access' => true,
 		'accessZones' => [],
 	];
+	/** @var list<scalar> */
 	protected array $ctrlrArgs = [];
 
 	protected ?ReflectionMethod $actionReflection = null;
+	/** @var AssocArray */
 	protected array $actionOptions = [];
+	/** @var list<scalar> */
 	protected array $actionArgs = [];
 	protected string $actionCallback = '';
 
@@ -131,6 +140,9 @@ abstract class Controller {
 		return false;
 	}
 
+	/**
+	 * @param list<scalar> $params
+	 */
 	static protected function matchParams( string $route, array $params ) : ?array {
 		preg_match_all('#(' . implode('|', array_keys(static::$action_path_wildcards)) . ')#', $route, $matches);
 		$wildcards = $matches[1];
@@ -165,6 +177,8 @@ abstract class Controller {
 
 	/**
 	 * 1 .   T h e   M V C   s t a r t e r
+	 *
+	 * @param AssocArray $addCtrlrOptions
 	 * @return static
 	 */
 	public static function makeApplication( string $fullUri, array $addCtrlrOptions = [] ) : AppController {
@@ -205,6 +219,9 @@ abstract class Controller {
 
 	/**
 	 * 2 .   L o a d   t h e   a p p l i c a t i o n
+	 *
+	 * @param list<int|string> $ctrlrArgs
+	 * @param AssocArray $ctrlrOptions
 	 */
 	public function __construct( string $actionPath, array $ctrlrArgs = [], array $ctrlrOptions = [] ) {
 		$this->ctrlrOptions = array_merge_recursive_distinct($this->ctrlrOptions, $ctrlrOptions);
@@ -425,6 +442,9 @@ abstract class Controller {
 	}
 
 
+	/**
+	 * @param AssocArray $options
+	 */
 	protected function redirect( string $location, array $options = [] ) : RedirectResponse {
 		return new RedirectResponse($location, $options);
 	}
@@ -553,6 +573,8 @@ abstract class Controller {
 
 	/**
 	 * Helper: API: Easy error JSON response
+	 *
+	 * @param AssocArray $data
 	 */
 	public function jsonError( string $error, array $data = [] ) : JsonResponse {
 		$data += ['error' => $error];
@@ -562,6 +584,8 @@ abstract class Controller {
 
 	/**
 	 * Helper: API: facilicate easy PHP -> JSON(P)
+	 *
+	 * @param AssocArray $data
 	 */
 	public function json( array $data, bool $jsonp = false ) : JsonResponse {
 		$jsonp = $jsonp && isset($_GET['jsonp']) ? $_GET['jsonp'] : '';

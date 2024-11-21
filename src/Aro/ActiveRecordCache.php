@@ -2,15 +2,18 @@
 
 namespace Framework\Aro;
 
+use App\Services\Aro\AppActiveRecordObject;
+
 class ActiveRecordCache {
 
-	protected $objects = [];
+	/** @var array<class-string<AppActiveRecordObject>, array<int, AppActiveRecordObject>> */
+	protected array $objects = [];
 
 	/**
-	 * @param ActiveRecordObject[] $objects
-	 * @return void
+	 * @param AppActiveRecordObject[] $objects
+	 * @param-out AppActiveRecordObject[] $objects
 	 */
-	public function addMany( array &$objects ) {
+	public function addMany( array &$objects ) : void {
 		$class = null;
 		foreach ( $objects as $i => $object ) {
 			if ( !$class ) {
@@ -29,24 +32,15 @@ class ActiveRecordCache {
 		}
 	}
 
-	/**
-	 * @return void
-	 */
-	public function addOne( $class, $id, ActiveRecordObject $object ) {
+	public function addOne( string $class, int $id, AppActiveRecordObject $object ) : void {
 		$this->objects[$class][$id] = $object;
 	}
 
-	/**
-	 * @return ActiveRecordObject
-	 */
-	public function get( $class, $id ) {
+	public function get( string $class, int $id ) : AppActiveRecordObject {
 		return $this->objects[$class][$id];
 	}
 
-	/**
-	 * @return bool
-	 */
-	public function has( $class, $id ) {
+	public function has( string $class, int $id ) : bool {
 		return isset($this->objects[$class][$id]);
 	}
 
