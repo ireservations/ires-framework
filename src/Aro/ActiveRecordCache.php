@@ -32,15 +32,15 @@ class ActiveRecordCache {
 		}
 	}
 
-	public function addOne( string $class, int $id, AppActiveRecordObject $object ) : void {
+	public function addOne( string $class, string $id, AppActiveRecordObject $object ) : void {
 		$this->objects[$class][$id] = $object;
 	}
 
-	public function get( string $class, int $id ) : AppActiveRecordObject {
+	public function get( string $class, string $id ) : AppActiveRecordObject {
 		return $this->objects[$class][$id];
 	}
 
-	public function has( string $class, int $id ) : bool {
+	public function has( string $class, string $id ) : bool {
 		return isset($this->objects[$class][$id]);
 	}
 
