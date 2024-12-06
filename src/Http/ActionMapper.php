@@ -39,6 +39,9 @@ class ActionMapper {
 	}
 
 	protected function createMapping() : array {
+		$methods = ['get', 'post'];
+		$methodKeys = array_flip($methods);
+
 		$hooks = [];
 		foreach ( $this->app->getRawHooks() as $path => $hook ) {
 			if ( is_array($hook) ) {
@@ -50,8 +53,11 @@ class ActionMapper {
 					$hooks[] = Hook::withArgs($path, $hook, $args);
 				}
 				else {
-					foreach ( $hook as $method => $action ) {
-						$hooks[] = Hook::withMethod($path, $action, $method);
+					foreach ( $methods as $method ) {
+						if ( isset($hook[$method]) ) {
+							$args = array_diff_key($hook, $methodKeys);
+							$hooks[] = Hook::withMethod($path, $hook[$method], $method, $args);
+						}
 					}
 				}
 			}

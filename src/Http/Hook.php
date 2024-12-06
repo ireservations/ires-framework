@@ -15,8 +15,8 @@ class Hook {
 		return new static($path, $action, args: $args);
 	}
 
-	static public function withMethod( string $path, string $action, string $method ) {
-		return new static($path, $action, method: strtolower($method));
+	static public function withMethod( string $path, string $action, string $method, array $args = [] ) {
+		return new static($path, $action, method: strtolower($method), args: $args);
 	}
 
 	static public function withAction( string $path, string $action ) {

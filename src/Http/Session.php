@@ -4,24 +4,24 @@ namespace Framework\Http;
 
 class Session {
 
-	const REMEMBER_N_DAYS = 15;
+	protected const REMEMBER_N_DAYS = 15;
 
-	public static string $samesite = 'Lax';
+	static public string $samesite = 'Lax';
 
-	static function exists() {
+	static protected function exists() {
 		$name = session_name();
 		return isset($_COOKIE[$name]);
 	}
 
-	static function init() {
+	static public function init() {
 		static::exists() && static::start();
 	}
 
-	static function started() {
+	static protected function started() {
 		return isset($_SESSION) && is_array($_SESSION);
 	}
 
-	static function required( $refresh = false ) {
+	static public function required( bool $refresh = false ) {
 		$started = static::started();
 
 		if ( $started ) {
@@ -36,17 +36,19 @@ class Session {
 		}
 	}
 
-	static function start() {
+	static protected function start() {
 		@session_set_cookie_params(self::cookieParams());
 		@session_start();
 	}
 
-	static function refresh() {
+	static protected function refresh() {
 		session_regenerate_id(true);
 	}
 
-	static function destroy( $section = null ) {
-		static::exists() && !static::started() && static::start();
+	static public function destroy( $section = null ) {
+		if ( static::exists() && !static::started() ) {
+			static::start();
+		}
 
 		if ( $section ) {
 			if ( isset($_SESSION[SESSION_NAME]) ) {
@@ -59,7 +61,7 @@ class Session {
 		return $_SESSION = false;
 	}
 
-	static function get( $key, $alt = null ) {
+	static public function get( $key, $alt = null ) {
 		if ( static::started() ) {
 			return array_get($_SESSION[SESSION_NAME] ?? [], $key) ?? $alt;
 		}
@@ -67,7 +69,7 @@ class Session {
 		return $alt;
 	}
 
-	static function set( $key, $value ) {
+	static public function set( $key, $value ) {
 		static::required();
 
 		array_set($_SESSION[SESSION_NAME], $key, $value);
@@ -75,7 +77,7 @@ class Session {
 		return $value;
 	}
 
-	static function push( $key, $value ) {
+	static public function push( $key, $value ) {
 		static::required();
 
 		$list = array_get($_SESSION[SESSION_NAME] ?? [], $key);
@@ -88,11 +90,11 @@ class Session {
 
 
 	// Cookie
-	static function domain() {
+	static protected function domain() {
 		return HTTP_HOST;
 	}
 
-	static function cookie( $name, $value, $expire = null ) {
+	static public function cookie( $name, $value, $expire = null ) {
 		if ( $expire === null ) {
 			$expire = time() + static::REMEMBER_N_DAYS * 86400;
 			// $_COOKIE[$name] = $value;
@@ -111,7 +113,7 @@ class Session {
 		]);
 	}
 
-	static function cookieParams() : array {
+	static protected function cookieParams() : array {
 		return [
 			'path' => '/',
 			'samesite' => self::$samesite,
