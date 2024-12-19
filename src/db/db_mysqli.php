@@ -2,22 +2,29 @@
 
 class db_mysqli extends db_generic {
 
-	protected $m_columnDelimiter = '`';
+	protected string $m_columnDelimiter = '`';
 
-	/** @var mysqli $dbCon */
-	protected $dbCon;
+	protected ?mysqli $dbCon;
 
-	public function __construct( $f_szHost, $f_szUser = '', $f_szPass = '', $f_szDb = '' ) {
-		$this->db_name = $f_szDb;
-		$this->dbCon = @new mysqli($f_szHost, $f_szUser, $f_szPass, $f_szDb);
-		if ( !$this->dbCon->connect_errno ) {
+	public function __construct( string $host, string $user, string $pass, string $db ) {
+		$this->db_name = $db;
+
+		try {
 			mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+			$this->dbCon = new mysqli($host, $user, $pass, $db);
+			if ( $this->dbCon->connect_errno ) {
+				throw new Exception($this->dbCon->connect_error, $this->dbCon->connect_errno);
+			}
 
 			// $this->dbCon->options(MYSQLI_SET_CHARSET_NAME, 'utf8');
 			$this->dbCon->options(MYSQLI_OPT_INT_AND_FLOAT_NATIVE, true);
 
 			list($names, $collate) = explode(':', defined('SQL_CHARSET') ? SQL_CHARSET : 'utf8:utf8_general_ci');
 			$this->dbCon->query("SET NAMES '$names' COLLATE '$collate'");
+		}
+		catch ( Exception $ex ) {
+			$this->dbCon = null;
 		}
 	}
 

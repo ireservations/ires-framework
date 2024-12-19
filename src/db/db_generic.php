@@ -7,18 +7,18 @@ use Framework\Http\Exception\ServerException;
  */
 abstract class db_generic {
 
-	protected $m_columnDelimiter = '';
+	protected string $m_columnDelimiter = '';
 
-	public $db_name = '';
+	public string $db_name = '';
 	public string $error = '';
 	public int $errno = 0;
 
-	public $num_queries = 0;
-	public $log_queries = false;
-	public $query_logger;
-	public $queries = array();
-	public $times = [];
-	protected $transaction = 0;
+	public int $num_queries = 0;
+	public bool $log_queries = false;
+	public ?Closure $query_logger = null;
+	public array $queries = array();
+	public array $times = [];
+	protected int $transaction = 0;
 
 
 
