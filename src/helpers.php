@@ -56,7 +56,11 @@ function array_set( &$array, $path, $value ) {
 }
 
 function array_get( $source, $path ) {
-	is_array($path) or $path = array_filter(preg_split('#[\.\[\]]+#', $path));
+	if ( !is_array($path) ) {
+		$path = array_filter(preg_split('#[\.\[\]]+#', $path), function(string $part) {
+			return strlen($part) > 0;
+		});
+	}
 
 	$value = $source;
 	foreach ( $path as $name ) {

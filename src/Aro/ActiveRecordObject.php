@@ -781,13 +781,17 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	public function update( $updates ) {
 		if ( is_array($updates) ) {
 			static::presave($updates);
-
-			$this->fill($updates);
 		}
 
 		$pk = $this::$_pk;
 		$conditions = array($pk => $this->$pk);
-		return static::$_db->update($this::$_table, $updates, $conditions);
+		$updated = static::$_db->update($this::$_table, $updates, $conditions);
+
+		if ( is_array($updates) ) {
+			$this->fill($updates);
+		}
+
+		return $updated;
 	}
 
 
