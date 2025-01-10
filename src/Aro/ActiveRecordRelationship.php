@@ -154,7 +154,7 @@ abstract class ActiveRecordRelationship {
 		return array_filter($ids);
 	}
 
-	protected function getKey( ActiveRecordObject $object ) : ?int {
+	protected function getKey( ActiveRecordObject $object ) : null|int|string {
 		if ( $this->key === null ) {
 			return $object->getPKValue();
 		}
