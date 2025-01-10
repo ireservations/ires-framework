@@ -137,13 +137,13 @@ abstract class ActiveRecordRelationship {
 		return implode("\n", $joins);
 	}
 
-	protected function getForeignId( ActiveRecordObject $object, ?string $column = null ) : ?int {
+	protected function getForeignId( ActiveRecordObject $object, ?string $column = null ) : null|int|string {
 		return $column ? $object->$column : $object->getPKValue();
 	}
 
 	/**
 	 * @param ActiveRecordObject[] $objects
-	 * @return list<int>
+	 * @return list<null|int|string>
 	 */
 	protected function getForeignIds( array $objects, ?string $column = null ) : array {
 		$ids = [];
