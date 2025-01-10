@@ -2,16 +2,25 @@
 
 namespace Framework\Http;
 
-use Attribute;
 use Framework\Annotations\Controller;
 use Framework\Annotations\ControllerAnnotationInterface;
+use Framework\Http\Controller as BaseController;
 use Generator;
+use ReflectionAttribute;
 use ReflectionClass;
 
+/**
+ * @phpstan-type AttributeValues AssocArray
+ * @phpstan-type Mapping array<string, array{class-string<BaseController>, AttributeValues}>
+ */
 class ControllerMapper {
 
+	/** @var list<class-string> */
 	static protected array $beforeClasses;
 
+	/**
+	 * @return Mapping
+	 */
 	public function getMapping() : array {
 		$file = self::getMappingFile();
 		if ( file_exists($file) ) {
@@ -21,6 +30,9 @@ class ControllerMapper {
 		return $this->createMapping();
 	}
 
+	/**
+	 * @return Mapping
+	 */
 	public function createMapping() : array {
 // $t = microtime(1);
 		$controllers = $this->getAllControllerClasses(PROJECT_LOGIC);
@@ -42,6 +54,9 @@ class ControllerMapper {
 		return $prefixes;
 	}
 
+	/**
+	 * @param Mapping $mapping
+	 */
 	public function saveMapping( array $mapping ) : void {
 		$file = self::getMappingFile();
 		$mapping = $this->createMapping();
@@ -49,17 +64,21 @@ class ControllerMapper {
 		file_put_contents($file, $code);
 	}
 
+	/**
+	 * @return AttributeValues
+	 */
 	protected function getAttributeValues( ReflectionClass $reflection ) : array {
 		$attributes = $this->getAttributes($reflection);
 		$values = [];
 		foreach ( $attributes as $attribute ) {
 			$instance = $attribute->newInstance();
 			if ( $instance instanceof ControllerAnnotationInterface ) {
+				$name = $instance->controllerName();
 				if ( $instance->controllerIsMultiple() ) {
-					$values[$instance->controllerName()][] = $instance->controllerSingleValue();
+					$values[$name][] = $instance->controllerSingleValue(); // @phpstan-ignore offsetAccess.nonOffsetAccessible
 				}
 				else {
-					$values[$instance->controllerName()] = $instance->controllerSingleValue();
+					$values[$name] = $instance->controllerSingleValue();
 				}
 			}
 		}
@@ -67,6 +86,9 @@ class ControllerMapper {
 		return $values;
 	}
 
+	/**
+	 * @return list<ReflectionAttribute>
+	 */
 	protected function getAttributes( ReflectionClass $reflection ) : array {
 		$reflections = [$reflection];
 		while ( $reflection = $reflection->getParentClass() ) {
@@ -85,6 +107,9 @@ class ControllerMapper {
 		return realpath(PROJECT_RUNTIME) . DIRECTORY_SEPARATOR . 'controllers.php';
 	}
 
+	/**
+	 * @return Generator<int, ReflectionClass>
+	 */
 	protected function getAllControllerClasses( string $dir ) : Generator {
 		self::$beforeClasses ??= get_declared_classes();
 		foreach ( $this->getAllPhpFiles($dir) as $file ) {

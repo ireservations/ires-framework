@@ -22,7 +22,7 @@ class MigrateCommand extends Command {
 		$this->addOption('create', null, InputOption::VALUE_REQUIRED, "Create a new update file");
 	}
 
-	protected function execute( InputInterface $input, OutputInterface $output ) {
+	protected function execute( InputInterface $input, OutputInterface $output ) : int {
 		$table = $input->getOption('table');
 		$undo = $input->getOption('undo');
 		$status = $input->getOption('status');
@@ -52,7 +52,7 @@ class MigrateCommand extends Command {
 		return $this->executeMigrate($input, $output);
 	}
 
-	protected function executeConvertToClosures( InputInterface $input, OutputInterface $output ) {
+	protected function executeConvertToClosures( InputInterface $input, OutputInterface $output ) : int {
 		$test = $input->getOption('test');
 
 		$files = $this->getUpdates();
@@ -102,10 +102,10 @@ class MigrateCommand extends Command {
 		return 0;
 	}
 
-	protected function executeCreate( InputInterface $input, OutputInterface $output ) {
+	protected function executeCreate( InputInterface $input, OutputInterface $output ) : int {
 		echo "\n";
 
-		$create = $input->getOption('create');
+		$create = (string) $input->getOption('create');
 
 		$updates = $this->getUpdates();
 		if ( count($updates) ) {
@@ -132,7 +132,7 @@ class MigrateCommand extends Command {
 		return 0;
 	}
 
-	protected function executeStatus( InputInterface $input, OutputInterface $output ) {
+	protected function executeStatus( InputInterface $input, OutputInterface $output ) : int {
 		echo "\n";
 
 		$done = $this->getDoneUpdates();
@@ -146,7 +146,7 @@ class MigrateCommand extends Command {
 		return 0;
 	}
 
-	protected function executeUndo( InputInterface $input, OutputInterface $output ) {
+	protected function executeUndo( InputInterface $input, OutputInterface $output ) : int {
 		$test = $input->getOption('test');
 
 		echo "\n";
@@ -156,12 +156,12 @@ class MigrateCommand extends Command {
 
 		if ( !$undo ) {
 			echo "No migrations to undo.\n";
-			return;
+			return 0;
 		}
 
 		if ( $test ) {
 			echo "Will undo migration `$undo`.\n";
-			return;
+			return 0;
 		}
 
 		$this->saveUndone($undo);
@@ -170,7 +170,7 @@ class MigrateCommand extends Command {
 		return 0;
 	}
 
-	protected function executeTable( InputInterface $input, OutputInterface $output ) {
+	protected function executeTable( InputInterface $input, OutputInterface $output ) : int {
 		$test = $input->getOption('test');
 
 		echo "\n";
@@ -178,12 +178,12 @@ class MigrateCommand extends Command {
 		if ( $this->tableExists() ) {
 			$count = count($this->getDoneUpdates());
 			echo "Migrations table already exists, with $count migrations.\n";
-			return;
+			return 0;
 		}
 
 		if ( $test ) {
 			echo "Migrations table does NOT exist yet.\n";
-			return;
+			return 0;
 		}
 
 		$this->createTable();
@@ -191,12 +191,14 @@ class MigrateCommand extends Command {
 		return 0;
 	}
 
-	protected function executeMigrate( InputInterface $input, OutputInterface $output ) {
+	protected function executeMigrate( InputInterface $input, OutputInterface $output ) : int {
 		$test = $input->getOption('test');
 
-		$_start = microtime(1);
+		$_start = microtime(true);
 
-		require PROJECT_INCLUDE . '/inc.update.php';
+		if ( file_exists($file = PROJECT_INCLUDE . '/inc.update.php') ) {
+			require $file;
+		}
 
 		echo "\n";
 
@@ -244,22 +246,25 @@ class MigrateCommand extends Command {
 			echo "\n";
 		}
 
-		echo number_format(microtime(1) - $_start, 2, '.', '') . ' s';
+		echo number_format(microtime(true) - $_start, 2, '.', '') . ' s';
 
 		echo "\n\n";
 
 		return 0;
 	}
 
-	protected function saveDone( $migration ) {
+	protected function saveDone( string $migration ) : void {
 		$this->db->insert('migrations', ['name' => $migration]);
 	}
 
-	protected function saveUndone( $migration ) {
+	protected function saveUndone( string $migration ) : void {
 		$this->db->delete('migrations', ['name' => $migration]);
 	}
 
-	protected function getUpdates() {
+	/**
+	 * @return array<string, string>
+	 */
+	protected function getUpdates() : array {
 		$files = glob(SCRIPT_ROOT . '/_updates/auto-*');
 
 		$updates = [];
@@ -274,11 +279,17 @@ class MigrateCommand extends Command {
 		return $updates;
 	}
 
-	protected function getDoneUpdates() {
+	/**
+	 * @return array<string, string>
+	 */
+	protected function getDoneUpdates() : array {
 		return $this->db->select_fields('migrations', 'name', '1 ORDER BY ran_on ASC');
 	}
 
-	protected function getNewUpdates() {
+	/**
+	 * @return array<string, string>
+	 */
+	protected function getNewUpdates() : array {
 		$done = $this->getDoneUpdates();
 
 		$updates = $this->getUpdates();
@@ -291,7 +302,7 @@ class MigrateCommand extends Command {
 		return $updates;
 	}
 
-	protected function tableExists() {
+	protected function tableExists() : bool {
 		try {
 			$this->db->count('migrations', '1');
 			return true;
@@ -300,7 +311,7 @@ class MigrateCommand extends Command {
 		return false;
 	}
 
-	protected function createTable() {
+	protected function createTable() : void {
 		echo "Creating migrations table...\n";
 		$this->db->query("
 			CREATE TABLE IF NOT EXISTS `migrations` (

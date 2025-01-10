@@ -8,7 +8,9 @@ trait ValidatesTokens {
 
 	abstract function getPKValue();
 
-	/** @return int|string */
+	/**
+	 * @return int|string
+	 */
 	public function tokenId() {
 		return $this->getPKValue();
 	}

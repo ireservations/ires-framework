@@ -12,6 +12,9 @@ class ActionMapper {
 		protected AppController $app,
 	) {}
 
+	/**
+	 * @return list<Hook>
+	 */
 	public function getMapping() : array {
 		// $file = self::getMappingFile();
 		// if ( file_exists($file) ) {
@@ -21,6 +24,9 @@ class ActionMapper {
 		return $this->createMapping();
 	}
 
+	/**
+	 * @return list<Hook>
+	 */
 	protected function createMappingFromReflection() : array {
 		$reflClass = new ReflectionClass($this->app);
 
@@ -38,6 +44,9 @@ class ActionMapper {
 		return $hooks;
 	}
 
+	/**
+	 * @return list<Hook>
+	 */
 	protected function createMapping() : array {
 		$methods = ['get', 'post'];
 		$methodKeys = array_flip($methods);

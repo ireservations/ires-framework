@@ -1,9 +1,10 @@
 <?php
 
-use Framework\Http\Exception\ServerException;
 
 /**
  * @phpstan-type Record array<string, ?scalar>
+ * @phpstan-type Where string|list<string>|array<array-key, mixed>
+ * @phpstan-type Args list<mixed>
  */
 abstract class db_generic {
 
@@ -16,24 +17,23 @@ abstract class db_generic {
 	public int $num_queries = 0;
 	public bool $log_queries = false;
 	public ?Closure $query_logger = null;
+	/** @var list<string> */
 	public array $queries = array();
-	public array $times = [];
 	protected int $transaction = 0;
 
 
 
-	/** @return bool */
-	abstract public function connected();
+	abstract public function connected() : bool;
 
-	abstract public function close();
-
+	abstract public function close() : bool;
 
 
-	abstract public function begin();
 
-	abstract public function commit();
+	abstract public function begin() : void;
 
-	abstract public function rollback();
+	abstract public function commit() : void;
+
+	abstract public function rollback() : void;
 
 	/**
 	 * @template T
@@ -69,51 +69,66 @@ abstract class db_generic {
 
 
 
-	/** @return string */
-	abstract public function escape( $value );
+	abstract public function escape( mixed $value ) : string;
 
 
 
-	/** @return int */
-	abstract public function insert_id();
+	abstract public function insert_id() : int;
 
-	/** @return int */
-	abstract public function affected_rows();
+	abstract public function affected_rows() : int;
 
 
-
-	/** @return true|object */
-	abstract public function query( $query );
 
 	/**
-	 * @param bool|array $first
-	 * @return list<Record>
+	 * @return true|object
 	 */
-	abstract public function fetch( $query, $first = false, $args = [] );
+	abstract public function query( string $query );
 
-	/** @return array<int|string, ?scalar> */
-	abstract public function fetch_fields( $query, $args = [] );
+	/**
+	 * @param bool|Args $first
+	 * @param Args $args
+	 * @return ($first is true ? ?Record : list<Record>)
+	 */
+	abstract public function fetch( string $query, bool|array $first = false, array $args = [] ) : ?array;
 
-	/** @return ?scalar */
-	abstract public function fetch_one( $query, $args = [] );
+	/**
+	 * @param Args $args
+	 * @return array<int|string, ?scalar>
+	 */
+	abstract public function fetch_fields( string $query, array $args = [] ) : array;
 
-	/** @return array<int|string, Record> */
-	abstract public function fetch_by_field( $query, $field, $args = [] );
+	/**
+	 * @param Args $args
+	 * @return ?scalar
+	 */
+	abstract public function fetch_one( string $query, array $args = [] ) : mixed;
 
-	/** @return array<int|string, list<Record>> */
-	abstract public function groupfetch_by_field( $query, $field, $args = [] );
+	/**
+	 * @param Args $args
+	 * @return array<int|string, Record>
+	 */
+	abstract public function fetch_by_field( string $query, string $field, array $args = [] ) : array;
+
+	/**
+	 * @param Args $args
+	 * @return array<int|string, list<Record>>
+	 */
+	abstract public function groupfetch_by_field( string $query, string $field, array $args = [] ) : array;
 
 
 
-	/** @return string */
-	static public function prettifyQuery( $sql ) {
+	static public function prettifyQuery( string $sql ) : string {
 		return trim(preg_replace('#\s+#', ' ', $sql));
 	}
 
 
 
-	/** @return string */
-	public function like( $string ) {
+	/**
+	 * @param bool|string $a
+	 * @param null|bool|string $b
+	 * @param null|bool $c
+	 */
+	public function like( $a, $b = null, $c = null ) : string {
 		$args = func_get_args();
 		if ( !is_bool($args[0]) ) {
 			array_unshift($args, false);
@@ -129,18 +144,21 @@ abstract class db_generic {
 		)) . ($after ? '%' : '');
 	}
 
-	/** @return string */
-	public function stringify( $conditions ) {
+	/**
+	 * @param Where $conditions
+	 */
+	public function stringify( string|array $conditions ) : string {
 		return $this->stringifyConditions($conditions);
 	}
 
-	/** @return string */
-	public function qmarks( $str, ...$args ) {
+	public function qmarks( string $str, mixed ...$args ) : string {
 		return $this->replaceQMarks($str, $args);
 	}
 
-	/** @return string */
-	public function replaceQMarks( $str, array $args ) {
+	/**
+	 * @param Args $args
+	 */
+	public function replaceQMarks( string $str, array $args ) : string {
 		if ( !$args ) return $str;
 
 		$str = preg_replace_callback('#\?+#', function() use (&$args) {
@@ -158,14 +176,17 @@ abstract class db_generic {
 		}, $str);
 
 		if ( $args ) {
-			debug_exit('Left-over query args in replaceQMarks(): ' . var_export($args, 1));
+			debug_exit('Left-over query args in replaceQMarks(): ' . var_export($args, true));
 		}
 
 		return $str;
 	}
 
-	/** @return string */
-	function prepAndReplaceQMarks( $str, array $args ) {
+	/**
+	 * @param Where $str
+	 * @param Args $args
+	 */
+	public function prepAndReplaceQMarks( string|array $str, array $args ) : string {
 		if ( is_array($str) ) {
 			return $this->stringifyConditions($str);
 		}
@@ -177,16 +198,17 @@ abstract class db_generic {
 		return $str;
 	}
 
-	/** @return string */
-	function escapeAndQuoteColumn( $column ) {
+	protected function escapeAndQuoteColumn( string $column ) : string {
 		if ( $delimiter = $this->m_columnDelimiter ) {
 			$column = str_replace($delimiter, '', $column);
 		}
 		return $delimiter . str_replace('.', $delimiter . '.' . $delimiter, $column) . $delimiter;
 	}
 
-	/** @return string */
-	function stringifyConditions( $conditions, $operator = 'AND' ) {
+	/**
+	 * @param Where $conditions
+	 */
+	public function stringifyConditions( string|array $conditions, string $operator = 'AND' ) : string {
 		if ( is_scalar($conditions) ) {
 			return (string) $conditions;
 		}
@@ -215,24 +237,26 @@ abstract class db_generic {
 
 
 	/**
-	 * @param string|array $where
-	 * @return string
+	 * @param Where $where
+	 * @return null|int|float|string
 	 */
-	public function select_one( $table, $field, $where = '1', ...$args ) {
+	public function select_one( string $table, string $field, string|array $where = '1', mixed ...$args ) : mixed {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		$query = 'SELECT ' . $field . ' FROM ' . $table . ' WHERE ' . $where . ' LIMIT 1';
 		return $this->fetch_one($query);
 	}
 
-	/** @return array<int|string, Record> */
-	public function select_by_field( $table, $field, $where = '1', ...$args ) {
+	/**
+	 * @param Where $where
+	 * @return array<int|string, Record>
+	 */
+	public function select_by_field( string $table, string $field, string|array $where = '1', mixed ...$args ) : array {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		$sql = 'SELECT * FROM ' . $table . ' WHERE ' . $where;
 		return $this->fetch_by_field($sql, $field);
 	}
 
-	/** @return string */
-	public function escapeAndQuote( $value ) {
+	public function escapeAndQuote( mixed $value ) : string {
 		if ( $value === true ) {
 			return "'1'";
 		}
@@ -246,80 +270,92 @@ abstract class db_generic {
 		return "'" . $this->escape($value) . "'";
 	}
 
-	/** @return list<Record> */
-	public function select( $table, $where = '1', ...$args ) {
+	/**
+	 * @param Where $where
+	 * @return list<Record>
+	 */
+	public function select( string $table, string|array $where = '1', mixed ...$args ) : array {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		$sql = 'SELECT * FROM ' . $table . ' WHERE ' . $where;
 		return $this->fetch($sql);
 	}
 
 	/**
-	 * @param string|array $where
-	 * @return Record
+	 * @param Where $where
+	 * @return ?Record
 	 */
-	public function select_first( $table, $where = '1', ...$args ) {
+	public function select_first( string $table, string|array $where = '1', mixed ...$args ) : ?array {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		$sql = 'SELECT * FROM ' . $table . ' WHERE ' . $where;
 		return $this->fetch($sql, true);
 	}
 
-	/** @return Record */
-	public function fetch_first( $sql, $args = [] ) {
+	/**
+	 * @param Args $args
+	 * @return ?Record
+	 */
+	public function fetch_first( string $sql, array $args = [] ) : ?array {
 		$sql = $this->prepAndReplaceQMarks($sql, $args);
 		return $this->fetch($sql, true);
 	}
 
-	/** @return int */
-	public function max( $table, $field, $where = '1', ...$args ) {
+	/**
+	 * @param Where $where
+	 */
+	public function max( string $table, string $field, string|array $where = '1', mixed ...$args ) : int|string {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		return $this->select_one($table, 'MAX(' . $field . ')', $where);
 	}
 
-	/** @return int */
-	public function min( $table, $field, $where = '1', ...$args) {
+	/**
+	 * @param Where $where
+	 */
+	public function min( string $table, string $field, string|array $where = '1', mixed ...$args) : int|string {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		return $this->select_one($table, 'MIN(' . $field . ')', $where);
 	}
 
 	/**
-	 * @param string|array $where
-	 * @return int
+	 * @param Where $where
 	 */
-	public function count( $table, $where = '1', ...$args ) {
+	public function count( string $table, string|array $where = '1', mixed ...$args ) : int {
 		$where = $this->prepAndReplaceQMarks( $where, $args);
 		$count = $this->select_one($table, 'COUNT(1)', $where);
 		return $count !== false ? (int) $count : false;
 	}
 
-	/** @return int */
-	public function count_rows( $query ) {
+	public function count_rows( string $query ) : int {
 		$query = trim(rtrim($query, ';'));
 		$n = 0;
 		$query = preg_replace_callback('#(\S+\.\*)#', function($m) use (&$n) {
 			return '1 as x' . (++$n);
 		}, $query);
-		$count = $this->fetch_one("SELECT COUNT(1) num FROM ($query) x");
-		return $count !== false ? (int) $count : false;
+		return (int) $this->fetch_one("SELECT COUNT(1) num FROM ($query) x");
 	}
 
-	/** @return array<int, list<Record>> */
-	public function groupselect_by_field( $table, $field, $where = '1', ...$args ) {
+	/**
+	 * @param Where $where
+	 * @return array<int, list<Record>>
+	 */
+	public function groupselect_by_field( string $table, string $field, string|array $where = '1', mixed ...$args ) : array {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		$sql = 'SELECT * FROM ' . $table . ' WHERE ' . $where;
 		return $this->groupfetch_by_field($sql, $field);
 	}
 
 	/**
-	 * @param string|array $where
+	 * @param Where $where
 	 * @return array<int|string, ?scalar>
 	 */
-	public function select_fields( $table, $fields, $where = '1', ...$args ) {
+	public function select_fields( string $table, string $fields, string|array $where = '1', mixed ...$args ) : array {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		return $this->fetch_fields('SELECT ' . $fields . ' FROM ' . $table . ' WHERE ' . $where);
 	}
 
-	/** @return bool */
-	public function replace_into( $table, array $data ) {
+	/**
+	 * @param AssocArray $data
+	 */
+	public function replace_into( string $table, array $data ) : bool {
 		$keys = array_map([$this, 'escapeAndQuoteColumn'], array_keys($data));
 		$values = array_map([$this, 'escapeAndQuote'], $data);
 
@@ -327,8 +363,10 @@ abstract class db_generic {
 		return $this->query($sql);
 	}
 
-	/** @return bool */
-	public function insert( $table, array $data ) {
+	/**
+	 * @param AssocArray $data
+	 */
+	public function insert( string $table, array $data ) : bool {
 		$keys = array_map([$this, 'escapeAndQuoteColumn'], array_keys($data));
 		$values = array_map([$this, 'escapeAndQuote'], $data);
 
@@ -337,10 +375,10 @@ abstract class db_generic {
 	}
 
 	/**
-	 * @param string|array $where
-	 * @return bool
+	 * @param array<int|string, ?scalar> $update
+	 * @param Where $where
 	 */
-	public function update( $table, $update, $where = '1', ...$args ) {
+	public function update( string $table, $update, string|array $where = '1', mixed ...$args ) : bool {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 
 		if ( !is_string($update) ) {
@@ -360,8 +398,10 @@ abstract class db_generic {
 		return $this->query($query);
 	}
 
-	/** @return bool */
-	public function delete( $table, $where, ...$args ) {
+	/**
+	 * @param Where $where
+	 */
+	public function delete( string $table, string|array $where, mixed ...$args ) : bool {
 		$where = $this->prepAndReplaceQMarks($where, $args);
 		return $this->query('DELETE FROM ' . $table . ' WHERE ' . $where);
 	}

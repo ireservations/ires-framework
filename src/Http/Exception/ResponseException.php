@@ -7,15 +7,13 @@ use Exception;
 
 class ResponseException extends Exception {
 
-	protected $response;
-
-	public function __construct( Response $response ) {
+	public function __construct(
+		protected Response $response,
+	) {
 		parent::__construct('');
-
-		$this->response = $response;
 	}
 
-	public function getResponse() {
+	public function getResponse() : Response {
 		return $this->response;
 	}
 

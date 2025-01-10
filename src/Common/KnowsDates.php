@@ -45,12 +45,12 @@ trait KnowsDates {
 	}
 
 
-	static function today() : string {
+	static public function today() : string {
 		return date('Y-m-d');
 	}
 
 
-	static function tomorrow() : string {
+	static public function tomorrow() : string {
 		return date('Y-m-d', strtotime('tomorrow'));
 	}
 

@@ -18,7 +18,7 @@ class db_mysqli extends db_generic {
 			}
 
 			// $this->dbCon->options(MYSQLI_SET_CHARSET_NAME, 'utf8');
-			$this->dbCon->options(MYSQLI_OPT_INT_AND_FLOAT_NATIVE, true);
+			$this->dbCon->options(MYSQLI_OPT_INT_AND_FLOAT_NATIVE, 1);
 
 			list($names, $collate) = explode(':', defined('SQL_CHARSET') ? SQL_CHARSET : 'utf8:utf8_general_ci');
 			$this->dbCon->query("SET NAMES '$names' COLLATE '$collate'");
@@ -30,17 +30,17 @@ class db_mysqli extends db_generic {
 
 
 
-	public function connected() {
-		return (is_object($this->dbCon) && 0 === $this->dbCon->connect_errno);
+	public function connected() : bool {
+		return is_object($this->dbCon) && 0 === $this->dbCon->connect_errno;
 	}
 
-	public function close() {
-		return $this->dbCon->close();
+	public function close() : bool {
+		return (bool) $this->dbCon->close();
 	}
 
 
 
-	public function begin() {
+	public function begin() : void {
 		if (!$this->dbCon->begin_transaction()) {
 			throw new db_exception('BEGIN');
 		}
@@ -49,7 +49,7 @@ class db_mysqli extends db_generic {
 		$this->queries[] = '[? ms] BEGIN';
 	}
 
-	public function commit() {
+	public function commit() : void {
 		if (!$this->dbCon->commit()) {
 			throw new db_exception('COMMIT');
 		}
@@ -58,7 +58,7 @@ class db_mysqli extends db_generic {
 		$this->queries[] = '[? ms] COMMIT';
 	}
 
-	public function rollback() {
+	public function rollback() : void {
 		if (!$this->dbCon->rollback()) {
 			throw new db_exception('ROLLBACK');
 		}
@@ -69,24 +69,27 @@ class db_mysqli extends db_generic {
 
 
 
-	public function escape( $value ) {
+	public function escape( mixed $value ) : string {
 		return $this->dbCon->real_escape_string($value);
 	}
 
 
 
-	public function insert_id() {
+	public function insert_id() : int {
 		return $this->dbCon->insert_id;
 	}
 
-	public function affected_rows() {
+	public function affected_rows() : int {
 		return $this->dbCon->affected_rows;
 	}
 
 
 
-	public function query( $query ) {
-		$_start = microtime(1);
+	/**
+	 * @return true|mysqli_result
+	 */
+	public function query( string $query ) {
+		$_start = microtime(true);
 
 		$this->num_queries++;
 
@@ -102,7 +105,7 @@ class db_mysqli extends db_generic {
 		}
 
 		if ( $this->log_queries ) {
-			$_time = round((microtime(1) - $_start) * 1000);
+			$_time = round((microtime(true) - $_start) * 1000);
 			if ( $this->query_logger ) {
 				call_user_func($this->query_logger, $query, $_time);
 			}
@@ -130,7 +133,7 @@ class db_mysqli extends db_generic {
 		return $result;
 	}
 
-	public function fetch( $query, $first = false, $args = [] ) {
+	public function fetch( string $query, bool|array $first = false, array $args = [] ) : ?array {
 		if ( is_array($first) ) {
 			$args = $first;
 			$first = false;
@@ -139,9 +142,6 @@ class db_mysqli extends db_generic {
 		$query = $this->replaceQMarks($query, $args);
 
 		$r = $this->query($query);
-		if ( !is_object($r) ) {
-			return false;
-		}
 
 		if ( $first ) {
 			return $r->fetch_assoc();
@@ -154,13 +154,10 @@ class db_mysqli extends db_generic {
 		return $a;
 	}
 
-	public function fetch_fields( $query, $args = [] ) {
+	public function fetch_fields( string $query, array $args = [] ) : array {
 		$query = $this->replaceQMarks($query, $args);
 
 		$r = $this->query($query);
-		if ( !is_object($r) ) {
-			return false;
-		}
 
 		$a = array();
 		while ( $l = $r->fetch_row() ) {
@@ -172,27 +169,24 @@ class db_mysqli extends db_generic {
 		return $a;
 	}
 
-	public function fetch_one( $query, $args = [] ) {
+	public function fetch_one( string $query, array $args = [] ) : mixed {
 		$query = $this->replaceQMarks($query, $args);
 
 		$r = $this->query($query);
 
-		if ( !is_object($r) || 0 >= $r->num_rows ) {
+		if ( $r->num_rows < 1 ) {
 			return false;
 		}
 
 		$row = $r->fetch_row();
 
-		return $row[0];
+		return $row[0] ?? false;
 	}
 
-	public function fetch_by_field( $query, $field, $args = [] ) {
+	public function fetch_by_field( string $query, string $field, array $args = [] ) : array {
 		$query = $this->replaceQMarks($query, $args);
 
 		$r = $this->query($query);
-		if ( !is_object($r) ) {
-			return false;
-		}
 
 		$a = array();
 		while ( $l = $r->fetch_assoc() ) {
@@ -202,13 +196,10 @@ class db_mysqli extends db_generic {
 		return $a;
 	}
 
-	public function groupfetch_by_field( $query, $field, $args = [] ) {
+	public function groupfetch_by_field( string $query, string $field, array $args = [] ) : array {
 		$query = $this->prepAndReplaceQMarks($query, $args);
 
 		$r = $this->query($query);
-		if ( !is_object($r) ) {
-			return false;
-		}
 
 		$a = array();
 		while ( $l = $r->fetch_assoc() ) {

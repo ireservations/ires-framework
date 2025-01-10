@@ -7,7 +7,10 @@ use Framework\Aro\ActiveRecordRelationship;
 
 class ToMany extends ActiveRecordRelationship {
 
-	protected function fetch() {
+	/**
+	 * @return ActiveRecordObject[]
+	 */
+	protected function fetch() : array {
 		$id = $this->getForeignId($this->source);
 		$where = $this->getWhereOrder([
 			$this->getFullTargetColumn($this->foreign) => $id,
@@ -20,9 +23,9 @@ class ToMany extends ActiveRecordRelationship {
 	}
 
 	/**
-	 * @param ActiveRecordObject[] $objects
+	 * @return ActiveRecordObject[]
 	 */
-	protected function fetchAll( array $objects ) {
+	protected function fetchAll( array $objects ) : array {
 		$name = $this->name;
 		$ids = $this->getForeignIds($objects);
 
@@ -60,7 +63,7 @@ class ToMany extends ActiveRecordRelationship {
 			->returnType('int');
 	}
 
-	public function getReturnType() {
+	public function getReturnType() : string {
 		return '\\' . $this->target . '[]';
 	}
 

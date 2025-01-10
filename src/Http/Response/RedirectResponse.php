@@ -6,6 +6,9 @@ use App\Services\Session\User;
 
 class RedirectResponse extends Response {
 
+	/**
+	 * @param AssocArray $options
+	 */
 	public function __construct( string $url, array $options = [] ) {
 		parent::__construct(User::redirectUrl($url, $options));
 	}
@@ -13,11 +16,11 @@ class RedirectResponse extends Response {
 	public function printHeaders() {
 		$this->printDebugHeaders();
 
-		header('Location: ' . $this->data);
+		header('Location: ' . strval($this->data));
 	}
 
 	public function printContent() {
-		echo "Redirecting to {$this->data}";
+		printf("Redirecting to %s\n", $this->data);
 	}
 
 }

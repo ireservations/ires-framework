@@ -26,4 +26,16 @@ class SchemaFieldDefinition {
 		return $nullable . $this->getPhpType();
 	}
 
+	public function makeValue() : mixed {
+		switch ($this->getPhpType()) {
+			case 'int':
+				return 0;
+
+			case 'float':
+				return 0.1;
+		}
+
+		return '1';
+	}
+
 }

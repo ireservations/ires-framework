@@ -2,19 +2,30 @@
 
 namespace Framework\Locale;
 
+/**
+ * @template TLangId of int|string
+ */
 abstract class Multilang {
 
-	public $language_id;
-	public $translations = [];
+	/** @var TLangId */
+	public int|string $language_id;
+	/** @var array<TLangId, array<string, string>> */
+	public array $translations = [];
 
-	public function setLanguage( $language, $force = false ) {
+	/**
+	 * @param TLangId $language
+	 */
+	public function setLanguage( $language, bool $force = false ) : void {
 		if ( $language ) {
 			$this->ensureTranslationsForLanguage($language, $force);
 			$this->language_id = $language;
 		}
 	}
 
-	public function translate( $key, array $options = [] ) {
+	/**
+	 * @param AssocArray $options
+	 */
+	public function translate( string $key, array $options = [] ) : string {
 		if ( !$key ) return '';
 
 		$ucfirst = $options['ucfirst'] ?? true;
@@ -39,11 +50,14 @@ abstract class Multilang {
 		return $translation;
 	}
 
-	public function ucfirst( $translation ) {
+	public function ucfirst( string $translation ) : string {
 		return self::mbUcfirst($translation);
 	}
 
-	public function ensureTranslationsForLanguage( $language, $force = false ) {
+	/**
+	 * @param TLangId $language
+	 */
+	public function ensureTranslationsForLanguage( $language, bool $force = false ) : bool {
 		if ( $force || !isset($this->translations[$language]) ) {
 			if ( !($this->translations[$language] = $this->getTranslations($language)) ) {
 				return false;
@@ -53,9 +67,13 @@ abstract class Multilang {
 		return true;
 	}
 
-	abstract public function getTranslations( $language );
+	/**
+	 * @param TLangId $language
+	 * @return array<string, string>
+	 */
+	abstract public function getTranslations( $language ) : array;
 
-	static public function mbUcfirst( $string ) {
+	static public function mbUcfirst( string $string ) : string {
 		$enc = mb_internal_encoding();
 		return mb_strtoupper(mb_substr($string, 0, 1, $enc), $enc) . mb_substr($string, 1, mb_strlen($string, $enc), $enc);
 	}

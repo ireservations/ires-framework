@@ -1,0 +1,60 @@
+includes:
+	- vendor/rdx/phpstan-extra/extension-ires.neon
+	- vendor/rdx/phpstan-extra/extension-php.neon
+	- phpstan-baseline.neon
+parameters:
+	level: 6
+	tmpDir: /tmp/phpstan/iresfw
+	bootstrapFiles:
+		- src/Phpstan/bootstrap.php
+	typeAliases:
+		AssocArray: 'array<string, mixed>'
+	paths:
+		- src/
+		- vendor/rdx/phpstan-extra/src/Php/
+		- vendor/rdx/phpstan-extra/src/Ires/
+	phpVersion: 80400
+	dynamicConstantNames:
+		- APPLICATION_ENV
+		- DEBUG
+		- HTTP_HOST
+		- PROJECT_ARO
+		- PROJECT_CONFIG
+		- PROJECT_CRONJOBS
+		- PROJECT_INC_SMARTY
+		- PROJECT_INCLUDE
+		- PROJECT_LOGIC
+		- PROJECT_PUBLIC
+		- PROJECT_RESOURCES
+		- PROJECT_RUNTIME
+		- PROJECT_SMARTY_TPLS
+		- PROJECT_VENDORS
+		- RUNTIME_LOGS
+		- SCRIPT_ROOT
+		- SEMIDEBUG_IPS
+		- SESSION_NAME
+		- SQL_DB
+		- SQL_PASS
+		- SQL_USER
+		- UTC_START
+	reportUnmatchedIgnoredErrors: true
+	treatPhpDocTypesAsCertain: false
+	checkFunctionNameCase: true
+	checkNullables: true
+	checkExplicitMixed: true
+	checkImplicitMixed: true
+	reportMaybes: true
+	ignoreErrors:
+		-
+			identifier: trait.unused
+			path: src/Common/
+
+		# Silly reflection generics
+		- "#^Property .+ with generic class Reflection\\w+ does not specify its types#"
+		- "#^Method .+ has parameter .+ with generic class Reflection\\w+ but does not specify its types#"
+		- "#^Method .+ return type with generic class Reflection\\w+ does not specify its types#"
+
+		# Too strict implicit mixed checking:
+		- "#^Cannot access offset .+ on mixed#"
+		- "#^Cannot cast mixed to (int|float|string)#"
+		- "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported#"

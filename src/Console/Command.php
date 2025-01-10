@@ -9,18 +9,27 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * @phpstan-consistent-constructor
+ */
 abstract class Command extends BaseCommand {
 
-	/** @var db_generic */
-	protected $db;
+	protected db_generic $db;
 
-	protected function initialize( InputInterface $input, OutputInterface $output ) {
+	public function __construct( ?string $name = null ) {
+		parent::__construct($name);
+	}
+
+	protected function initialize( InputInterface $input, OutputInterface $output ) : void {
 		parent::initialize($input, $output);
 
 		$this->db = $GLOBALS['db'];
 	}
 
-	static public function runWithParams( array $params = [] ) {
+	/**
+	 * @param AssocArray $params
+	 */
+	static public function runWithParams( array $params = [] ) : BufferedOutput {
 		$command = new static();
 		$output = new BufferedOutput();
 
@@ -31,7 +40,7 @@ abstract class Command extends BaseCommand {
 		$stdout = trim($output->fetch());
 
 		$output->write($stdout);
-		$stdout and $echo and $output->writeln("\n====\n====\n");
+		if ( $stdout and $echo ) $output->writeln("\n====\n====\n");
 		$output->write($echo);
 
 		return $output;

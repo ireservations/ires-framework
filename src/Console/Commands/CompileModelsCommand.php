@@ -3,7 +3,6 @@
 namespace Framework\Console\Commands;
 
 use App\Services\Aro\AppActiveRecordObject;
-use Framework\Aro\ActiveRecordObject;
 use Framework\Aro\ActiveRecordRelationship;
 use Framework\Console\Command;
 use Framework\Console\Commands\CompileModels\IncludesTablesAttribute;
@@ -23,6 +22,7 @@ use db_exception;
 
 class CompileModelsCommand extends Command {
 
+	/** @var array<string, array<string, SchemaFieldDefinition>> */
 	protected array $schemaTables = [];
 	protected PhpParser\NameContext $localImports;
 
@@ -33,12 +33,12 @@ class CompileModelsCommand extends Command {
 		$this->addOption('dump', null, InputOption::VALUE_REQUIRED, 'Database structure file for input for better column types');
 	}
 
-	protected function execute( InputInterface $input, OutputInterface $output ) {
+	protected function execute( InputInterface $input, OutputInterface $output ) : int {
 		$onlyClass = $input->getOption('class');
 
 		if ( $dumpFile = $input->getOption('dump') ) {
-			$dumpSql = file_get_contents($dumpFile);
-			$this->schemaTables = SchemaParser::parseDumpSqlTables($dumpSql);
+			// $dumpSql = file_get_contents($dumpFile);
+			$this->schemaTables = (new SchemaParser($dumpFile))->getAllColumns();
 		}
 
 		$_modelsNamespaceOutput = $this->getTemplate('Models');
@@ -70,7 +70,6 @@ class CompileModelsCommand extends Command {
 			catch ( PhpParser\Error $error ) {}
 		}
 
-		/** @var ActiveRecordObject $className */
 		$totalProperties = 0;
 		$gettypes = [];
 		$nullStrings = [];
@@ -92,6 +91,7 @@ class CompileModelsCommand extends Command {
 				$dbTables = [...$dbTables, ...$attribute->getTables()];
 			}
 
+			/** @var ReflectionClass<AppActiveRecordObject> $class */
 			$query = call_user_func([$class->getName(), 'getQuery'], '');
 
 			$classOutput = strtr($_classOutput, [
@@ -279,6 +279,9 @@ class CompileModelsCommand extends Command {
 		return 0;
 	}
 
+	/**
+	 * @param list<string> $dbTables
+	 */
 	protected function getDbType( array $dbTables, string $column ) : ?SchemaFieldDefinition {
 		foreach ( $dbTables as $dbTable ) {
 			if ( isset($this->schemaTables[$dbTable][$column]) ) {
@@ -289,7 +292,7 @@ class CompileModelsCommand extends Command {
 		return null;
 	}
 
-	protected function write( $code ) : void {
+	protected function write( string $code ) : void {
 		$dir = $this->getOutputDir();
 
 		if ( !$dir ) {
@@ -371,7 +374,7 @@ class CompileModelsCommand extends Command {
 		return $this->getCommentType($property->getDocComment(), 'var');
 	}
 
-	protected function getCommentType( $comment, $atName ) : string {
+	protected function getCommentType( ?string $comment, string $atName ) : string {
 		if ( $comment ) {
 			if ( preg_match('#@' . $atName . ' (.+)#', $comment, $match) ) {
 				return trim($match[1], ' */');
@@ -381,6 +384,9 @@ class CompileModelsCommand extends Command {
 		return '';
 	}
 
+	/**
+	 * @return array<string, string>
+	 */
 	protected function getClassDocProperties( ?ReflectionClass $class, bool $includeParents ) : array {
 		$props = [];
 
@@ -398,6 +404,9 @@ class CompileModelsCommand extends Command {
 		return $props;
 	}
 
+	/**
+	 * @return array<string, string>
+	 */
 	protected function getClassPublicProperties( ReflectionClass $class ) : array {
 		$props = [];
 		foreach ( $class->getProperties() as $prop ) {

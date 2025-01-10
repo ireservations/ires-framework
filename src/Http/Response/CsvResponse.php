@@ -6,13 +6,19 @@ class CsvResponse extends TextResponse {
 
 	protected $contentType = 'text/csv';
 
-	public function __construct( $data, $filename ) {
+	/**
+	 * @param mixed $data
+	 */
+	public function __construct( $data, string $filename ) {
 		parent::__construct($this->stringify($data));
 
 		$this->downloadFilename = $filename;
 	}
 
-	protected function stringify( $data ) {
+	/**
+	 * @param mixed $data
+	 */
+	protected function stringify( $data ) : string {
 		if ( is_scalar($data) ) {
 			return $data;
 		}

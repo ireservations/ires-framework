@@ -5,25 +5,25 @@ namespace Framework\Aro;
 use ArrayAccess;
 use db_exception;
 use db_generic;
-use Framework\Aro\Relationship\ToOneScalarTable;
-use Generator;
 
 /**
- * @property int $id
  * @property db_generic $db
+ *
+ * @implements ArrayAccess<string, mixed>
+ *
+ * @phpstan-import-type Where from db_generic
+ * @phpstan-import-type Args from db_generic
  */
 #[\AllowDynamicProperties]
 abstract class ActiveRecordObject implements ArrayAccess {
 
 	use ValidatesTokens;
 
-	const ITERATOR_PAGE_SIZE = 500;
+	public const int ITERATOR_PAGE_SIZE = 500;
 
 
-	/**
-	 * Whether to allow all array access, or to debug_exit()
-	 */
-	public static $allowArrayAccess = false;
+	/** Whether to allow all array access, or to debug_exit() */
+	public static bool $allowArrayAccess = false;
 
 
 
@@ -75,80 +75,76 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Whether the db data have been loaded
-	 *
-	 * @var bool
 	 */
-	protected $_loaded = true;
+	protected bool $_loaded = true;
 
 	/**
 	 * Magic getter cache
 	 *
-	 * @var array
+	 * @var AssocArray
 	 */
-	protected $_got = [];
+	protected array $_got = [];
 
 	/**
 	 * Any cache for this specific entity
 	 *
-	 * @var array
+	 * @var AssocArray
 	 */
-	protected $_cache = [];
+	protected array $_cache = [];
 
 
 
-	/**
-	 * @return string
-	 */
-	static public function _table() {
+	static public function _table() : string {
 		return static::$_table;
 	}
 
 
-	/**
-	 * @return string
-	 */
-	static public function _pk() {
+	static public function _pk() : string {
 		return static::$_pk;
 	}
 
 
 	/**
-	 * @return array
+	 * @return list<null|scalar>
 	 */
-	static function getDistincts( $field ) {
+	static public function getDistincts( string $field ) : array {
 		return static::$_db->select_fields(static::$_table, $field, "$field IS NOT NULL GROUP BY $field ORDER BY $field");
 	}
 
-	static public function deletes( $conditions, ...$args ) {
+	/**
+	 * @param Where $conditions
+	 */
+	static public function deletes( string|array $conditions, mixed ...$args ) : void {
 		static::$_db->delete(static::$_table, $conditions, ...$args);
 	}
 
 	/**
-	 * @param array<string, mixed> $update
+	 * @param AssocArray $update
+	 * @param Where $conditions
 	 */
-	static public function updates( array $update, $conditions, ...$args ) {
+	static public function updates( array $update, string|array $conditions, mixed ...$args ) : void {
 		static::$_db->update(static::$_table, $update, $conditions, ...$args);
 	}
 
 
 
-	protected function to_one( $targetClass, $foreignColumn ) : Relationship\ToOne {
+	protected function to_one( string $targetClass, string $foreignColumn ) : Relationship\ToOne {
 		return new Relationship\ToOne($this, $targetClass, $foreignColumn);
 	}
 
-	protected function to_first( $targetClass, $relationColumn ) : Relationship\ToFirst {
+	protected function to_first( string $targetClass, string $relationColumn ) : Relationship\ToFirst {
 		return new Relationship\ToFirst($this, $targetClass, $relationColumn);
 	}
 
-	protected function to_one_scalar_table( $targetColumn, $throughTable, $foreignColumn, $localColumn = null ) : Relationship\ToOneScalarTable {
+	protected function to_one_scalar_table( string $targetColumn, string $throughTable, string $foreignColumn, ?string $localColumn = null ) : Relationship\ToOneScalarTable {
 		return new Relationship\ToOneScalarTable($this, $targetColumn, $throughTable, $foreignColumn, $localColumn);
 	}
 
-	protected function to_many( $targetClass, $foreignColumn ) : Relationship\ToMany {
+	protected function to_many( string $targetClass, string $foreignColumn ) : Relationship\ToMany {
 		return new Relationship\ToMany($this, $targetClass, $foreignColumn);
 	}
 
-	protected function to_count( $targetClass, $foreignColumn ) : Relationship\ToOneScalarTable {
+	protected function to_count( string $targetClass, string $foreignColumn ) : Relationship\ToOneScalarTable {
 		$targetTable = call_user_func([$targetClass, '_table']);
 		return (new Relationship\ToOneScalarTable($this, 'count(1)', $targetTable, $foreignColumn))
 			->default(0)
@@ -156,47 +152,49 @@ abstract class ActiveRecordObject implements ArrayAccess {
 			->returnType('int');
 	}
 
-	protected function to_count_table( $targetTable, $foreignColumn ) : Relationship\ToOneScalarTable {
+	protected function to_count_table( string $targetTable, string $foreignColumn ) : Relationship\ToOneScalarTable {
 		return (new Relationship\ToOneScalarTable($this, 'count(1)', $targetTable, $foreignColumn))
 			->default(0)
 			->cast('intval')
 			->returnType('int');
 	}
 
-	protected function to_many_through( $targetClass, $throughRelationsip ) : Relationship\ToManyThrough {
+	protected function to_many_through( string $targetClass, string $throughRelationsip ) : Relationship\ToManyThrough {
 		return new Relationship\ToManyThrough($this, $targetClass, $throughRelationsip);
 	}
 
-	protected function to_many_through_property( $targetClass, $throughProperty ) : Relationship\ToManyThroughProperty {
+	protected function to_many_through_property( string $targetClass, string $throughProperty ) : Relationship\ToManyThroughProperty {
 		return new Relationship\ToManyThroughProperty($this, $targetClass, $throughProperty);
 	}
 
-	protected function to_many_scalar( $targetColumn, $throughTable, $foreignColumn, $localColumn = null ) : Relationship\ToManyScalar {
+	protected function to_many_scalar( string $targetColumn, string $throughTable, string $foreignColumn, ?string $localColumn = null ) : Relationship\ToManyScalar {
 		return new Relationship\ToManyScalar($this, $targetColumn, $throughTable, $foreignColumn, $localColumn);
 	}
 
 
 	/**
 	 * @param list<self> $objects
-	 * @return list<self>
+	 * @return list<self|scalar>
 	 */
-	static public function eager( $name, array $objects ) : array {
+	static public function eager( string $name, array $objects ) : array {
 		if ( count($objects) == 0 ) {
 			return [];
 		}
 
+		/** @var ActiveRecordRelationship $relationship */
 		$relationship = call_user_func([new static(), "relate_$name"]);
 		return $relationship->name($name)->loadAll($objects);
 	}
 
 	/**
-	 * @param list<self> $objects
-	 * @ return array<string, list<self>>
+	 * @param array<self> $objects
+	 * @param list<string> $names
 	 */
 	static public function eagers( array $objects, array $names ) : void {
 		$return = [];
 		foreach ( $names as $name ) {
 			$parts = explode('.', $name);
+			/** @var self[] $sources */
 			$sources = count($parts) == 1 ? $objects : $return[ implode('.', array_slice($parts, 0, -1)) ];
 			if ( count($sources) == 0 ) {
 				$return[$name] = [];
@@ -206,16 +204,14 @@ abstract class ActiveRecordObject implements ArrayAccess {
 			$class = get_class(array_first($sources));
 			$return[$name] = call_user_func([$class, 'eager'], end($parts), $sources);
 		}
-
-		// return $return;
 	}
 
 
 
 	/**
-	 *
+	 * @param AssocArray $data
 	 */
-	public function __construct( $data = null ) {
+	final public function __construct( $data = null ) {
 		if ( is_array($data) && count($data) ) {
 			$this->fill($data);
 		}
@@ -225,14 +221,14 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 *
 	 */
-	public function __isset( $name ) {
+	public function __isset( string $name ) : bool {
 		return $this->existsMagicProperty($name);
 	}
 
 	/**
 	 *
 	 */
-	public function &__get( $name ) {
+	public function &__get( string $name ) : mixed {
 		if ( $this->gotGot($name) ) {
 			return $this->_got[$name];
 		}
@@ -261,44 +257,45 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
-	 * @return db_generic
+	 * Getter for db object for any ARO in any project: $user->db.
 	 */
-	protected function get_db() {
+	protected function get_db() : db_generic {
 		return static::$_db;
 	}
 
 
-	protected function existsMagicProperty( $name ) {
+	protected function existsMagicProperty( string $name ) : bool {
 		return $this->gotGot($name) || $this->existsGetter($name) || $this->existsRelationship($name);
 	}
 
-	public function existsGetter( $name ) {
+	public function existsGetter( string $name ) : bool {
 		return method_exists($this, 'get_' . $name);
 	}
 
-	protected function resolveGetter( $name ) {
+	protected function resolveGetter( string $name ) : mixed {
 		$method = [$this, 'get_' . $name];
 		return call_user_func($method);
 	}
 
-	public function setGot( $name, $value ) {
+	public function setGot( string $name, mixed $value ) : void {
 		$this->_got[$name] = $value;
 	}
 
-	public function getGot( $name ) {
+	public function getGot( string $name ) : mixed {
 		return $this->_got[$name] ?? null;
 	}
 
-	public function gotGot( $name ) {
+	public function gotGot( string $name ) : bool {
 		return array_key_exists($name, $this->_got);
 	}
 
-	public function existsRelationship( $name ) {
+	public function existsRelationship( string $name ) : bool {
 		return method_exists($this, 'relate_' . $name);
 	}
 
-	protected function resolveRelationship( $name ) {
+	protected function resolveRelationship( string $name ) : mixed {
 		$method = [$this, 'relate_' . $name];
+		/** @var ActiveRecordRelationship $relationship */
 		$relationship = call_user_func($method);
 		return $relationship->name($name)->load();
 	}
@@ -319,15 +316,18 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Returns all records it finds
+	 *
+	 * @param Where $conditions
+	 * @param null|string|Args $keyByOrArgs
 	 * @return static[]
 	 */
-	static public function fetch( $conditions, $f_szKeyField = null ) {
+	static public function fetch( string|array $conditions, null|string|array $keyByOrArgs = null ) : array {
 		if ( is_array($conditions) ) {
 			$conditions = static::$_db->stringifyConditions($conditions);
 		}
 
 		$query = static::getQuery($conditions);
-		$objects = static::byQuery($query, $f_szKeyField);
+		$objects = static::byQuery($query, $keyByOrArgs);
 
 		// Add to cache
 		if ( count($objects) ) {
@@ -340,9 +340,13 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Returns all records it finds
+	 *
+	 * @param Where $conditions
+	 * @param Args $args
+	 * @param AssocArray $options
 	 * @return ActiveRecordFetchGenerator<static>
 	 */
-	static public function fetchIterator( $conditions, array $args = [], array $options = [] ) : ActiveRecordFetchGenerator {
+	static public function fetchIterator( string|array $conditions, array $args = [], array $options = [] ) : ActiveRecordFetchGenerator {
 		if ( is_array($conditions) ) {
 			$conditions = static::$_db->stringifyConditions($conditions);
 		}
@@ -353,8 +357,12 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Add/replace many records to/in the object cache
+	 *
+	 * @template T of self
+	 * @param T[] $objects
+	 * @param-out T[] $objects
 	 */
-	static public function _allToCache( array &$objects ) {
+	static public function _allToCache( array &$objects ) : void {
 		if ( self::$_objectCache) {
 			self::$_objectCache->addMany($objects);
 		}
@@ -363,9 +371,11 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Add one record to the object cache
+	 *
+	 * @param null|int|string $id
 	 */
-	static public function _oneToCache( $class, $id, self $object ) {
-		if ( self::$_objectCache) {
+	static public function _oneToCache( string $class, $id, self $object ) : void {
+		if ( self::$_objectCache ) {
 			self::$_objectCache->addOne($class, $id, $object);
 		}
 	}
@@ -373,10 +383,12 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Get one record from the object cache
+	 *
+	 * @param null|int|string $id
 	 * @return ?static
 	 */
-	static public function _fromCache( $id ) {
-		if ( self::$_objectCache) {
+	static protected function _fromCache( $id ) {
+		if ( self::$_objectCache ) {
 			$class = get_called_class();
 			$id = (string) $id;
 
@@ -384,13 +396,16 @@ abstract class ActiveRecordObject implements ArrayAccess {
 				return self::$_objectCache->get($class, $id);
 			}
 		}
+
+		return null;
 	}
 
 
 	/**
+	 * @param null|int|string $id
 	 * @return ?static
 	 */
-	static function find( $id ) {
+	static public function find( $id ) {
 		if ( !$id ) {
 			return null;
 		}
@@ -399,19 +414,23 @@ abstract class ActiveRecordObject implements ArrayAccess {
 			return static::byPK($id);
 		}
 		catch ( ActiveRecordException $ex ) {}
+
+		return null;
 	}
 
 	/**
+	 * @param null|int|string $id
 	 * @return ?static
 	 */
-	static function load( $id ) {
+	static public function load( $id ) {
 		return static::find($id);
 	}
 
 
 	/**
 	 * Must return one record
-	 * @throws ActiveRecordException
+	 *
+	 * @param null|int|string $id
 	 * @return static
 	 */
 	static public function byPK( $id ) {
@@ -426,24 +445,25 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 	/**
 	 * Will return any first record that matches
+	 *
+	 * @param Where $conditions
 	 * @return ?static
 	 */
-	static public function findFirst( $conditions, ...$args ) {
+	static public function findFirst( string|array $conditions, mixed ...$args ) {
 		$conditions = static::$_db->prepAndReplaceQMarks($conditions, $args);
 
 		$objects = static::fetch("$conditions LIMIT 1");
-		if ( count($objects) ) {
-			return $objects[0];
-		}
+		return $objects[0] ?? null;
 	}
 
 
 	/**
 	 * Must return one record
-	 * @throws ActiveRecordException
+	 *
+	 * @param Where $conditions
 	 * @return static
 	 */
-	static public function findOne( $conditions, ...$args ) {
+	static public function findOne( string|array $conditions, mixed ...$args ) {
 		$conditions = static::$_db->prepAndReplaceQMarks($conditions, $args);
 
 		$objects = static::fetch($conditions . ' LIMIT 2');
@@ -457,27 +477,26 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
-	 * @throws db_exception
+	 * @param null|string|Args $keyByOrArgs
 	 * @return static[]
 	 */
-	static public function byQuery( $f_szSqlQuery, $f_szKeyField = null ) {
-		$option = false;
-		if ( true === $f_szKeyField ) {
-			$option = true;
-			$f_szKeyField = null;
+	static public function byQuery( string $query, null|string|array $keyByOrArgs = null ) : array {
+		$fetchOption = [];
+		$keyBy = null;
+		if ( is_string($keyByOrArgs) ) {
+			$keyBy = $keyByOrArgs;
 		}
-		else if ( is_array($f_szKeyField) ) {
-			$option = $f_szKeyField;
-			$f_szKeyField = null;
+		elseif ( is_array($keyByOrArgs) ) {
+			$fetchOption = $keyByOrArgs;
 		}
 
-		$records = static::$_db->fetch($f_szSqlQuery, $option);
+		$records = static::$_db->fetch($query, $fetchOption);
 
 		$objects = array();
 		foreach ( $records AS $record ) {
 			$object = new static($record);
-			if ( $f_szKeyField ) {
-				$objects[ $object->$f_szKeyField ] = $object;
+			if ( $keyBy ) {
+				$objects[ $object->$keyBy ] = $object;
 			}
 			else {
 				$objects[] = $object;
@@ -489,10 +508,11 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
-	 * @throws db_exception
+	 * @param Args $args
+	 * @param AssocArray $options
 	 * @return ActiveRecordGenerator<static>
 	 */
-	static public function byQueryIterator( $query, array $args = [], array $options = [] ) : ActiveRecordGenerator {
+	static public function byQueryIterator( string $query, array $args = [], array $options = [] ) : ActiveRecordGenerator {
 		return new ActiveRecordGenerator(get_called_class(), $query, $args, $options);
 	}
 
@@ -500,9 +520,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 * Returns 0 or more records - in assoc array
 	 *
+	 * @param Where $conditions
 	 * @return static[]
 	 */
-	static public function findManyByField( $conditions, $field, ...$args ) {
+	static public function findManyByField( string|array $conditions, string $field, mixed ...$args ) : array {
 		$query = static::$_db->prepAndReplaceQMarks($conditions, $args);
 		return static::fetch($query, $field);
 	}
@@ -511,9 +532,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 * Returns 0 or more records
 	 *
+	 * @param Where $conditions
 	 * @return static[]
 	 */
-	static public function findMany( $conditions, ...$args ) {
+	static public function findMany( string|array $conditions, mixed ...$args ) : array {
 		$conditions = static::$_db->prepAndReplaceQMarks($conditions, $args);
 		return static::fetch($conditions);
 	}
@@ -522,9 +544,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 * Returns records by PK search
 	 *
+	 * @param list<int|string> $ids
 	 * @return static[]
 	 */
-	static public function findManyByPK( $ids, $byField = false ) {
+	static public function findManyByPK( array $ids, bool $byField = false ) : array {
 		if ( !$ids ) {
 			return [];
 		}
@@ -542,18 +565,19 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
+	 * @param Where $conditions
 	 * @return ?static
 	 */
-	static public function any( $conditions = '1', ...$args ) {
+	static public function any( string|array $conditions = '1', mixed ...$args ) {
 		$conditions = static::$_db->prepAndReplaceQMarks($conditions, $args);
 		return static::findFirst("$conditions ORDER BY RAND()");
 	}
 
 
 	/**
-	 * @return int
+	 * @param Where $conditions
 	 */
-	static public function count( $conditions, ...$args ) {
+	static public function count( string|array $conditions, mixed ...$args ) : int {
 		$conditions = static::$_db->prepAndReplaceQMarks($conditions, $args);
 
 		$szSqlQuery = static::getQuery($conditions);
@@ -563,9 +587,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
-	 *
+	 * @param array<int|string> $ids
+	 * @param AssocArray $conditions
 	 */
-	static public function saveOrder( $ids, $column, $conditions = array() ) {
+	static public function saveOrder( array $ids, string $column, array $conditions = [] ) : void {
 		$db = static::$_db;
 		$table = static::$_table;
 		$pk = static::$_pk;
@@ -582,7 +607,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 * Inserts a record into this table
 	 *
-	 * @param array<string, mixed> $data
+	 * @param AssocArray $data
 	 * @return static
 	 */
 	static public function insert( array $data ) {
@@ -639,7 +664,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 * Remove all properties
 	 */
-	public function clean() {
+	public function clean() : void {
 		$this->_got = [];
 	}
 
@@ -655,12 +680,12 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	/**
 	 *
 	 */
-	public function initCache() {
+	public function initCache() : void {
 		$this->_got = [];
 		$this->_cache = [];
 	}
 
-	protected function initTimes( ...$fields) {
+	protected function initTimes( string ...$fields ) : void {
 		foreach ( $fields as $field ) {
 			if ( isset($this->$field) && is_string($this->$field) ) {
 				$this->$field = substr($this->$field, 0 ,5);
@@ -668,7 +693,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		}
 	}
 
-	protected function initFloats( ...$fields) {
+	protected function initFloats( string ...$fields ) : void {
 		foreach ( $fields as $field ) {
 			if ( isset($this->$field) ) {
 				$this->$field = (float) $this->$field;
@@ -676,7 +701,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		}
 	}
 
-	protected function initInts( ...$fields) {
+	protected function initInts( string ...$fields ) : void {
 		foreach ( $fields as $field ) {
 			if ( isset($this->$field) ) {
 				$this->$field = (int) $this->$field;
@@ -687,7 +712,8 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
-	 * @param array<string, mixed> $data
+	 * @param AssocArray $data
+	 * @param-out AssocArray $data
 	 * @return void
 	 */
 	static public function presave( array &$data ) {
@@ -696,10 +722,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	}
 
 	/**
-	 * @param array<string, mixed> $data
-	 * @return void
+	 * @param AssocArray $data
+	 * @param-out AssocArray $data
 	 */
-	static public function presaveNullables( array &$data ) {
+	static public function presaveNullables( array &$data ) : void {
 		foreach ( static::$_nullables as $column ) {
 			if ( isset($data[$column]) && ( $data[$column] === '' || $data[$column] === [] ) ) {
 				$data[$column] = null;
@@ -708,18 +734,18 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	}
 
 	/**
-	 * @param array<string, mixed> $data
-	 * @return void
+	 * @param AssocArray $data
+	 * @param-out AssocArray $data
 	 */
-	static public function presaveId( array &$data ) {
+	static public function presaveId( array &$data ) : void {
 		unset($data['id']);
 	}
 
 	/**
-	 * @param array<string, mixed> $data
-	 * @return void
+	 * @param AssocArray $data
+	 * @param-out AssocArray $data
 	 */
-	static public function presaveTrim( array &$data ) {
+	static public function presaveTrim( array &$data ) : void {
 		foreach ( $data as $column => $value ) {
 			if ( is_string($value) ) {
 				$data[$column] = trim($value);
@@ -728,10 +754,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	}
 
 	/**
-	 * @param array<string, mixed> $data
-	 * @return void
+	 * @param AssocArray $data
+	 * @param-out AssocArray $data
 	 */
-	static public function presaveCSVs( array &$data, ...$fields ) {
+	static public function presaveCSVs( array &$data, string ...$fields ) : void {
 		foreach ( $fields as $field ) {
 			if ( isset($data[$field]) && is_array($data[$field]) ) {
 				$data[$field] = implode(',', $data[$field]);
@@ -740,10 +766,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 	}
 
 	/**
-	 * @param array<string, mixed> $data
+	 * @param AssocArray $data
 	 * @return void
 	 */
-	static public function presaveFloats( array &$data, ...$fields ) {
+	static public function presaveFloats( array &$data, string ...$fields ) {
 		foreach ( $fields as $field ) {
 			if ( isset($data[$field]) ) {
 				$data[$field] = (float) $data[$field];
@@ -753,7 +779,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 
-	protected function _cache( string $type, string $key, callable $callback ) {
+	protected function _cache( string $type, string $key, callable $callback ) : mixed {
 		if ( !isset($this->_cache[$type][$key]) ) {
 			$value = $callback($this);
 			$this->_cache[$type][$key] = isset($value) ? $value : false;
@@ -764,7 +790,11 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 
-	public function extractOnly( $props ) {
+	/**
+	 * @param list<string> $props
+	 * @return AssocArray
+	 */
+	public function extractOnly( array $props ) : array {
 		$data = [];
 		foreach ( $props as $item ) {
 			$data[$item] = $this->$item;
@@ -775,30 +805,26 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
-	 * @param array<string, mixed> $updates
+	 * @param array<int|string, mixed> $updates
 	 * @return bool
 	 */
-	public function update( $updates ) {
-		if ( is_array($updates) ) {
-			static::presave($updates);
-		}
+	public function update( array $updates ) {
+		static::presave($updates);
 
 		$pk = $this::$_pk;
 		$conditions = array($pk => $this->$pk);
 		$updated = static::$_db->update($this::$_table, $updates, $conditions);
 
-		if ( is_array($updates) ) {
-			$this->fill($updates);
-		}
+		$this->fill($updates);
 
 		return $updated;
 	}
 
 
 	/**
-	 * @return array
+	 * @return AssocArray
 	 */
-	public function makeArray() {
+	public function makeArray() : array {
 		$props = get_object_vars($this);
 		foreach ( $props as $name => $value ) {
 			if ( $name[0] == '_' ) {
@@ -822,10 +848,10 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 	/**
-	 * Copies and/or replaces data from $data into $this
+	 * @param AssocArray $data
 	 * @return $this
 	 */
-	public function fill( $data ) {
+	public function fill( array $data ) {
 		foreach ( $data AS $k => $v ) {
 			if ( is_string($k) ) {
 				$this->$k = $v;
@@ -847,6 +873,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 		if ( $key ) {
 			return $this->$key;
 		}
+		return null;
 	}
 
 

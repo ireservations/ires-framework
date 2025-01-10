@@ -8,7 +8,7 @@ class TextResponse extends Response {
 	protected $contentTypeCharset = self::CHARSET_UTF8;
 
 	public function printContent() {
-		echo $this->data;
+		echo strval($this->data);
 	}
 
 	public function __toString() {

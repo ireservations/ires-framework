@@ -2,11 +2,12 @@
 
 namespace Framework\Aro;
 
-use App\Services\Aro\AppActiveRecordObject;
 
 /**
- * @template Value of AppActiveRecordObject
- * @extends ActiveRecordGenerator<Value>
+ * @template TValue of ActiveRecordObject
+ * @extends ActiveRecordGenerator<TValue>
+ *
+ * @phpstan-import-type Args from \db_generic
  */
 class ActiveRecordFetchGenerator extends ActiveRecordGenerator {
 

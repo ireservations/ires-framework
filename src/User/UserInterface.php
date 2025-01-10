@@ -2,8 +2,12 @@
 
 namespace Framework\User;
 
+use App\Services\Aro\AppActiveRecordObject;
+
 /**
  * @property int $id
+ *
+ * @phpstan-require-extends AppActiveRecordObject
  */
 interface UserInterface {
 

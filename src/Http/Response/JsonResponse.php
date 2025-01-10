@@ -7,9 +7,12 @@ class JsonResponse extends Response {
 	protected $contentType = 'application/json';
 	protected $contentTypeCharset = 'utf-8';
 
-	public $jsonp;
+	public ?string $jsonp;
 
-	public function __construct( array $data, $code = null, $jsonp = null ) {
+	/**
+	 * @param AssocArray $data
+	 */
+	public function __construct( array $data, ?int $code = null, ?string $jsonp = null ) {
 		parent::__construct($data, $code);
 
 		$this->jsonp = $jsonp;

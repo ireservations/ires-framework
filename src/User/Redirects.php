@@ -6,7 +6,7 @@ use Framework\Http\Request;
 
 trait Redirects {
 
-	public static function loginRedirectUrl( string $reason = '', string $frontpage = '' ) {
+	public static function loginRedirectUrl( string $reason = '', string $frontpage = '' ) : string {
 		$query = [
 			'reason' => $reason,
 			'goto' => $_SERVER['REQUEST_URI'],
@@ -14,7 +14,10 @@ trait Redirects {
 		return self::redirectUrl($frontpage, ['query' => $query]);
 	}
 
-	public static function redirectUrl( string $location, array $options = [] ) {
+	/**
+	 * @param AssocArray $options
+	 */
+	public static function redirectUrl( string $location, array $options = [] ) : string {
 		$options += [
 			'external' => false,
 			'query' => [],

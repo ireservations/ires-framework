@@ -2,11 +2,13 @@
 
 namespace Framework\Aro\Relationship;
 
-use Framework\Aro\ActiveRecordObject;
 
 class ToManyScalar extends ToScalar {
 
-	protected function fetch() {
+	/**
+	 * @return array<array-key, ?scalar>
+	 */
+	protected function fetch() : array {
 		$db = $this->db();
 		$id = $this->getForeignId($this->source, $this->local);
 
@@ -27,9 +29,9 @@ class ToManyScalar extends ToScalar {
 	}
 
 	/**
-	 * @param ActiveRecordObject[] $objects
+	 * @return array<array-key, ?scalar>
 	 */
-	protected function fetchAll( array $objects ) {
+	protected function fetchAll( array $objects ) : array {
 		$name = $this->name;
 		$db = $this->db();
 
@@ -65,8 +67,7 @@ class ToManyScalar extends ToScalar {
 		return array_column($links, '_value');
 	}
 
-	/** @return  */
-	public function getReturnType() {
+	public function getReturnType() : string {
 		return $this->returnType . '[]';
 	}
 

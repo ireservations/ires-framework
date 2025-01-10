@@ -2,13 +2,16 @@
 
 namespace Framework\Aro;
 
-class ActiveRecordException extends \Exception {
+use Exception;
 
-	public $class;
+class ActiveRecordException extends Exception {
 
-	function __construct($a = '', $b = 0, $class = 'Unknown') {
-		parent::__construct($a, $b);
-		$this->class = $class;
+	public function __construct(
+		string $message = '',
+		int $code = 0,
+		public string $class = 'Unknown',
+	) {
+		parent::__construct($message, $code);
 	}
 
 }

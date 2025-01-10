@@ -6,7 +6,7 @@ use Smarty as BaseSmarty;
 
 class Smarty extends BaseSmarty {
 
-	public $_tpl_extension = '.tpl.html';
+	public string $_tpl_extension = '.tpl.html';
 
 	public function __construct() {
 		parent::__construct();
@@ -20,7 +20,7 @@ class Smarty extends BaseSmarty {
 		$this->right_delimiter = '?>';
 
 		// Compilation settings
-		$this->compile_check = true; // check filemtime()
+		$this->compile_check = BaseSmarty::COMPILECHECK_ON; // check filemtime()
 		$this->force_compile = false; // ignore existing compiled
 
 		// Custom plugins
@@ -28,11 +28,11 @@ class Smarty extends BaseSmarty {
 			PROJECT_INC_SMARTY . '/plugins',
 			PROJECT_VENDORS . '/smarty/smarty/libs/plugins',
 		];
-		$this->default_template_handler_func = function( $type, $name, $content, $timestamp, Smarty $smarty ) {
+		$this->default_template_handler_func = function(string $type, string $name, ?string $content, ?int $modified, self $smarty) : string {
 			if ( file_exists($name . $this->_tpl_extension) ) {
 				return $name . $this->_tpl_extension;
 			}
-			return $this->template_dir[0] . $name . $this->_tpl_extension;
+			return strval($this->template_dir[0]) . $name . $this->_tpl_extension;
 		};
 
 		// Errors & debug

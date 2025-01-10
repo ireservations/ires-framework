@@ -9,8 +9,11 @@ use Symfony\Component\VarDumper\Cloner\VarCloner;
 use Symfony\Component\VarDumper\Dumper\HtmlDumper;
 use Symfony\Component\VarDumper\VarDumper;
 
-function trans( $key, array $options = [] ) {
-	/** @var Multilang $g_language */
+/**
+ * @param AssocArray $options
+ */
+function trans( string $key, array $options = [] ) : string {
+	/** @var Multilang<array-key> $g_language */
 	global $g_language;
 
 	return $g_language->translate($key, $options);
@@ -40,8 +43,13 @@ function array_last( $arr ) {
 	return end($arr);
 }
 
-function array_set( &$array, $path, $value ) {
-	is_array($path) or $path = array_filter(preg_split('#[\.\[\]]+#', $path));
+/**
+ * @param null|array<array-key, mixed> $array
+ * @param-out array<array-key, mixed> $array
+ * @param string|list<int|string> $path
+ */
+function array_set( ?array &$array, string|array $path, mixed $value ) : void {
+	if ( !is_array($path) ) $path = array_filter(preg_split('#[\.\[\]]+#', $path));
 
 	$container = &$array;
 	foreach ( $path as $name ) {
@@ -52,10 +60,14 @@ function array_set( &$array, $path, $value ) {
 		$container = &$container[$name];
 	}
 
-	$container = $value;
+	$container = $value; // @phpstan-ignore paramOut.type
 }
 
-function array_get( $source, $path ) {
+/**
+ * @param array<array-key, mixed>|object $source
+ * @param string|list<int|string> $path
+ */
+function array_get( array|object $source, string|array $path ) : mixed {
 	if ( !is_array($path) ) {
 		$path = array_filter(preg_split('#[\.\[\]]+#', $path), function(string $part) {
 			return strlen($part) > 0;
@@ -73,6 +85,11 @@ function array_get( $source, $path ) {
 	return $value;
 }
 
+/**
+ * @param array<array-key, mixed> $array1
+ * @param array<array-key, mixed> $array2
+ * @return array<array-key, mixed>
+ */
 function array_merge_recursive_distinct( array $array1, array $array2 ) : array {
 	$merged = $array1;
 
@@ -96,7 +113,7 @@ function aro_options( array $objects, ?string $label = null, ?string $key = null
 	$options = array();
 	foreach ( $objects AS $object ) {
 		$keyValue = $key ? array_get($object, $key) : $object->getPKValue();
-		$labelValue = $label ? array_get($object, $label) : (string) $object;
+		$labelValue = $label ? array_get($object, $label) : ($object instanceof Stringable ? strval($object) : $object->getPKValue());
 
 		$options[$keyValue] = $labelValue;
 	}
@@ -134,7 +151,11 @@ function aro_key( array $objects, ?string $column = null ) : array {
 	return $keyed;
 }
 
-function array_flatten( $array ) : array {
+/**
+ * @param array<array-key, mixed> $array
+ * @return list<mixed>
+ */
+function array_flatten( array $array ) : array {
 	$items = [];
 	foreach ( $array as $item ) {
 		if ( is_array($item) ) {
@@ -148,7 +169,11 @@ function array_flatten( $array ) : array {
 	return $items;
 }
 
-function array_pluck( $array, $column, $indexColumn = null ) : array {
+/**
+ * @param array<array-key, AssocArray|object> $array
+ * @return array<array-key, mixed>
+ */
+function array_pluck( array $array, int|string $column, null|true|int|string $indexColumn = null ) : array {
 	$out = [];
 	foreach ( $array as $key => $item ) {
 		$value = array_get($item, $column);
@@ -167,20 +192,23 @@ function array_pluck( $array, $column, $indexColumn = null ) : array {
 	return $out;
 }
 
-function filter_xss( $html ) {
+function filter_xss( ?string $html ) : string {
 	$allowed = 'p,br,hr,h1,h2,h3,h4,ul,ol,li,strong,b,em,i,u,strike,span,blockquote,a,img,table,tr,td,th,iframe,select,option,code,pre';
-	$html = strip_tags($html, '<' . implode('><', explode(',', $allowed)) . '>');
+	$html = strip_tags($html ?? '', '<' . implode('><', explode(',', $allowed)) . '>');
 	$html = preg_replace('#\s(on[a-z]+\s*=)#i', ' x$1', $html);
 	return $html;
 }
 
-/** @return string */
+/**
+ * @param mixed $string
+ * @return string
+ */
 function escapehtml( $string ) {
 	if ( $string instanceof HtmlString ) {
 		return $string;
 	}
 
-	$encoded = @htmlspecialchars($string, ENT_COMPAT, 'UTF-8');
+	$encoded = @htmlspecialchars((string) $string, ENT_COMPAT, 'UTF-8');
 
 	// Encoding error =(
 	if ( $string && !$encoded ) {
@@ -190,7 +218,7 @@ function escapehtml( $string ) {
 	return new HtmlString($encoded);
 }
 
-function timetostr( $format, $utc = null, $language = null ) {
+function timetostr( string $format, ?int $utc = null, null|int|string $language = null ) : string {
 	$_format = preg_replace('/(?<!\\\\)([DlMF])/', '~~~@$1~~~', $format);
 
 	$date = $utc ? date($_format, $utc) : date($_format);
@@ -205,7 +233,7 @@ function timetostr( $format, $utc = null, $language = null ) {
 	return $date;
 }
 
-function debug_exit( $title, $more = '' ) {
+function debug_exit( string $title, mixed $more = '' ) : void {
 	if ( Request::debug() ) {
 		@ob_end_clean();
 		@header("HTTP/1.1 500 debug_exit");
@@ -236,6 +264,7 @@ function debug_exit( $title, $more = '' ) {
 		exit;
 	}
 	else {
+		/** @var list<string> $g_arrErrorMessages */
 		global $g_arrErrorMessages;
 
 		if ( $more instanceof Throwable ) {
@@ -247,45 +276,49 @@ function debug_exit( $title, $more = '' ) {
 		}
 
 		$more = $more ? "\n\n" . print_r($more, true) : '';
-		$g_arrErrorMessages[] = $title . $more . "\n\n" . print_r($trace, 1);
+		$g_arrErrorMessages[] = $title . $more . "\n\n" . print_r($trace, true);
 	}
 }
 
-function _debug_backtrace( array $trace = [] ) {
+/**
+ * @param list<AssocArray> $trace
+ * @return list<string>
+ */
+function _debug_backtrace( array $trace = [] ) : array {
 	if ( !$trace ) {
 		$trace = debug_backtrace();
 		$trace = array_slice($trace, 1);
 	}
 
 	$trace = array_map(function($item) {
-		$type = @$item['object'] ? '->' : '::';
-		$class = @$item['class'] ? $item['class'] . $type : '';
-		$line = @$item['line'] ? ' (' . $item['line'] . ')' : '';
-		return $class . @$item['function'] . $line;
+		$type = !empty($item['object']) ? '->' : '::';
+		$class = !empty($item['class']) ? strval($item['class']) . $type : '';
+		$line = isset($item['line']) ? ' (' . strval($item['line']) . ')' : '';
+		return $class . strval($item['function'] ?? '') . $line;
 	}, $trace);
 	return $trace;
 }
 
-function dpm( $data, $name = '' ) {
-	$name and $name = $name . ' => ';
-	return User::message($name . kprint_r_out($data));
+function dpm( mixed $data, string $name = '' ) : void {
+	if ( $name ) $name = $name . ' => ';
+	User::message($name . kprint_r_out($data));
 }
 
-function kprint_r_out( $data ) {
+function kprint_r_out( mixed $data ) : string {
 	$cloner = new VarCloner();
 	$dumper = new HtmlDumper();
-	return $dumper->dump($cloner->cloneVar($data), true);
+	return (string) $dumper->dump($cloner->cloneVar($data), true);
 }
 
-function kprint_r( $data ) {
+function kprint_r( mixed $data ) : void {
 	VarDumper::dump($data);
 }
 
-function watchdog( $name, $data, $logFile = 'watchdog' ) {
-	$header = Request::host() . Request::fullUri() . ' - ' . $name . ' - ' . date('Y-m-d H:i:s') . ' - ' . User::idOr(0) . ' - ' . (Request::ip() ?: 'local') . ' - ' . ($_SERVER['UNIQUE_ID'] ?? $_SERVER['REQUEST_TIME_FLOAT'] ?? '?');
-	return @file_put_contents(
+function watchdog( string $name, mixed $data, string $logFile = 'watchdog' ) : int {
+	$header = Request::host() . Request::fullUri() . ' - ' . $name . ' - ' . date('Y-m-d H:i:s') . ' - ' . User::idOr(0) . ' - ' . (Request::ip() ?: 'local') . ' - ' . strval($_SERVER['UNIQUE_ID'] ?? $_SERVER['REQUEST_TIME_FLOAT'] ?? '?');
+	return (int) @file_put_contents(
 		RUNTIME_LOGS . "/$logFile.log",
-		"$header:\n" . trim(print_r($data, 1)) . "\n\n\n\n\n\n\n\n\n",
+		"$header:\n" . trim(print_r($data, true)) . "\n\n\n\n\n\n\n\n\n",
 		FILE_APPEND
 	);
 }

@@ -31,15 +31,9 @@ use db_exception;
 use db_foreignkey_exception;
 use db_generic;
 
-/**
- * @phpstan-type AssocArray array<string, mixed>
- */
 abstract class Controller {
 
 	use ChecksAccess;
-
-	const INPUT_OPTIONAL = false;
-	const INPUT_REQUIRED = true;
 
 	/** @var array<string, string> */
 	static public array $action_path_wildcards = array(
@@ -77,7 +71,7 @@ abstract class Controller {
 	protected ?ReflectionMethod $actionReflection = null;
 	/** @var AssocArray */
 	protected array $actionOptions = [];
-	/** @var list<scalar> */
+	/** @var list<int|string|AppActiveRecordObject> */
 	protected array $actionArgs = [];
 	protected string $actionCallback = '';
 
@@ -100,6 +94,10 @@ abstract class Controller {
 		return $uri;
 	}
 
+	/**
+	 * @param ?array{} $params
+	 * @param-out ?array<mixed> $params
+	 */
 	static protected function matchControllerRoute( string $route, string $uri, ?array &$params, ?string &$path ) : bool {
 		$params = [];
 
@@ -121,6 +119,10 @@ abstract class Controller {
 		return false;
 	}
 
+	/**
+	 * @param ?array{} $params
+	 * @param-out ?array<mixed> $params
+	 */
 	static protected function matchActionRoute( string $route, string $uri, ?array &$params ) : bool {
 		$params = [];
 
@@ -142,6 +144,7 @@ abstract class Controller {
 
 	/**
 	 * @param list<scalar> $params
+	 * @return null|list<mixed>
 	 */
 	static protected function matchParams( string $route, array $params ) : ?array {
 		preg_match_all('#(' . implode('|', array_keys(static::$action_path_wildcards)) . ')#', $route, $matches);
@@ -167,7 +170,7 @@ abstract class Controller {
 
 
 	public function getActionMapper() : ActionMapper {
-		return new ActionMapper($this);
+		return new ActionMapper($this); // @phpstan-ignore argument.type
 	}
 
 	static public function getControllerMapper() : ControllerMapper {
@@ -179,7 +182,6 @@ abstract class Controller {
 	 * 1 .   T h e   M V C   s t a r t e r
 	 *
 	 * @param AssocArray $addCtrlrOptions
-	 * @return static
 	 */
 	public static function makeApplication( string $fullUri, array $addCtrlrOptions = [] ) : AppController {
 		[$ctrlrClass, $actionPath, $ctrlrArgs, $ctrlrOptions] = static::findController($fullUri);
@@ -192,7 +194,7 @@ abstract class Controller {
 
 
 	/**
-	 *
+	 * @return array{string, string, list<mixed>, AssocArray}
 	 */
 	static protected function findController( string $uri ) : array {
 		$uri = trim($uri, '/');
@@ -338,6 +340,9 @@ abstract class Controller {
 	}
 
 
+	/**
+	 * @return AssocArray
+	 */
 	public function getRawHooks() : array {
 		return static::HOOKS ?: $this->m_arrHooks;
 	}
@@ -454,17 +459,20 @@ abstract class Controller {
 	}
 
 
-	protected function notFound( string $message = '' ) : void {
-		$message and $message = " - $message";
+	protected function notFound( string $message = '' ) : never {
+		if ( $message ) $message = " - $message";
 		throw new NotFoundException($this->fullRequestUri . $message);
 	}
 
-	protected function accessDenied( string $message = '' ) : void {
-		$message and $message = " - $message";
+	protected function accessDenied( string $message = '' ) : never {
+		if ( $message ) $message = " - $message";
 		throw new AccessDeniedException($this->fullRequestUri . $message);
 	}
 
-	protected function invalidInput( mixed $error ) : void {
+	/**
+	 * @param string|array<array-key, string> $error
+	 */
+	protected function invalidInput( string|array $error ) : never {
 		if ( is_array($error) ) {
 			throw new InvalidInputException(null, $error);
 		}
@@ -549,7 +557,7 @@ abstract class Controller {
 		$this->failToken($source);
 	}
 
-	protected function failToken( AppActiveRecordObject $source ) : void {
+	protected function failToken( AppActiveRecordObject $source ) : never {
 		$name = (new ReflectionClass($source))->getShortName();
 		throw new InvalidTokenException($name);
 	}
@@ -565,7 +573,7 @@ abstract class Controller {
 		$this->failSessionToken($name);
 	}
 
-	protected function failSessionToken( string $name ) : void {
+	protected function failSessionToken( string $name ) : never {
 		throw new InvalidTokenException($name);
 	}
 

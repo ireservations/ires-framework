@@ -8,13 +8,13 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class VersionCommand extends Command {
 
-	protected $file;
+	protected string $file;
 
 	protected function configure() {
 		$this->setName('version');
 	}
 
-	protected function execute( InputInterface $input, OutputInterface $output ) {
+	protected function execute( InputInterface $input, OutputInterface $output ) : int {
 		$this->file = SCRIPT_ROOT . '/VERSION';
 
 		$curVersion = $this->getCurrentVersion();
@@ -27,11 +27,11 @@ class VersionCommand extends Command {
 		return 0;
 	}
 
-	protected function getCurrentVersion() {
+	protected function getCurrentVersion() : string {
 		return trim(file_get_contents($this->file));
 	}
 
-	protected function makeNewVersion( $curVersion ) {
+	protected function makeNewVersion( string $curVersion ) : string {
 		list($numbers, $name) = explode('-', $curVersion . '-');
 
 		$numbers = array_map(function($component) {
@@ -45,7 +45,7 @@ class VersionCommand extends Command {
 		return $version;
 	}
 
-	protected function saveVersion( $version ) {
+	protected function saveVersion( string $version ) : void {
 		file_put_contents($this->file, $version);
 	}
 

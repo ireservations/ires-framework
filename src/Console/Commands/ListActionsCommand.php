@@ -17,14 +17,13 @@ class ListActionsCommand extends Command {
 		$this->addOption('grep', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED);
 	}
 
-	protected function execute( InputInterface $input, OutputInterface $output ) {
+	protected function execute( InputInterface $input, OutputInterface $output ) : int {
 		$mapper = AppController::getControllerMapper();
 		$controllers = $mapper->createMapping();
 
 		$actions = $specialActions = $exceptions = [];
-		foreach ( $controllers as $ctrlrPath => $class ) {
+		foreach ( $controllers as $ctrlrPath => [$class, $options] ) {
 			try {
-				/** @var AppController $ctrlr */
 				$ctrlr = new $class('');
 				$hooks = $ctrlr->getHooks();
 

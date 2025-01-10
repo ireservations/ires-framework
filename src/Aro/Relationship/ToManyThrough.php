@@ -7,21 +7,27 @@ use Framework\Aro\ActiveRecordRelationship;
 
 class ToManyThrough extends ActiveRecordRelationship {
 
-	protected $throughRelationship;
+	protected string $throughRelationship;
 
-	public function __construct( ActiveRecordObject $source = null, $targetClass, $throughRelationship ) {
+	public function __construct( ?ActiveRecordObject $source, string $targetClass, string $throughRelationship ) {
 		parent::__construct($source, $targetClass, null);
 
 		$this->throughRelationship = $throughRelationship;
 	}
 
-	protected function getTargetIds( array $objects ) {
-		/** @var ActiveRecordObject $class */
+	/**
+	 * @param ActiveRecordObject[] $objects
+	 * @return int[]
+	 */
+	protected function getTargetIds( array $objects ) : array {
 		$class = get_class($objects[0]);
 		return call_user_func([$class, 'eager'], $this->throughRelationship, $objects);
 	}
 
-	protected function fetch() {
+	/**
+	 * @return ActiveRecordObject[]
+	 */
+	protected function fetch() : array {
 		$targetIds = $this->source->{$this->throughRelationship};
 		if ( count($targetIds) == 0 ) {
 			return [];
@@ -38,9 +44,9 @@ class ToManyThrough extends ActiveRecordRelationship {
 	}
 
 	/**
-	 * @param ActiveRecordObject[] $objects
+	 * @return ActiveRecordObject[]
 	 */
-	protected function fetchAll( array $objects ) {
+	protected function fetchAll( array $objects ) : array {
 		$name = $this->name;
 
 		$targetIds = $this->getTargetIds($objects);
@@ -72,7 +78,7 @@ class ToManyThrough extends ActiveRecordRelationship {
 		return $targets;
 	}
 
-	public function getReturnType() {
+	public function getReturnType() : string {
 		return '\\' . $this->target . '[]';
 	}
 

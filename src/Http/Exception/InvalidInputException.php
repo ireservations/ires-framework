@@ -14,7 +14,9 @@ class InvalidInputException extends Exception implements FullMessageException {
 		parent::__construct($message ?? '');
 	}
 
-	/** @return array<array-key, string> */
+	/**
+	 * @return array<array-key, string>
+	 */
 	public function getInvalids() : array {
 		return $this->invalid;
 	}

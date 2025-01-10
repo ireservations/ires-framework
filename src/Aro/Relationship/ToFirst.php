@@ -7,21 +7,23 @@ use Framework\Aro\ActiveRecordRelationship;
 
 class ToFirst extends ActiveRecordRelationship {
 
-	protected $localColumn;
+	protected ?string $localColumn = null;
 
-	public function __construct( ActiveRecordObject $source = null, $targetClass, $relationColumn ) {
+	public function __construct( ?ActiveRecordObject $source, string $targetClass, string $relationColumn ) {
 		parent::__construct($source, $targetClass, $relationColumn);
 	}
 
-	/** @return $this */
-	public function localColumn( $column ) {
+	/**
+	 * @return $this
+	 */
+	public function localColumn( ?string $column ) {
 		$this->localColumn = $column;
 		return $this;
 	}
 
-	protected function fetch() {
+	protected function fetch() : ?ActiveRecordObject {
 		$foreignId = $this->getForeignId($this->source, $this->localColumn);
-		if ( !$foreignId ) return;
+		if ( !$foreignId ) return null;
 
 		$where = $this->getWhereOrder([$this->foreign => $foreignId]);
 
@@ -31,9 +33,9 @@ class ToFirst extends ActiveRecordRelationship {
 	}
 
 	/**
-	 * @param ActiveRecordObject[] $objects
+	 * @return ActiveRecordObject[]
 	 */
-	protected function fetchAll( array $objects ) {
+	protected function fetchAll( array $objects ) : array {
 		$name = $this->name;
 		$foreignColumn = $this->foreign;
 
@@ -60,7 +62,7 @@ class ToFirst extends ActiveRecordRelationship {
 		return $targets;
 	}
 
-	public function getReturnType() {
+	public function getReturnType() : string {
 		return '?\\' . $this->target;
 	}
 

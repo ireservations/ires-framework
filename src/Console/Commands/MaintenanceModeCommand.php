@@ -8,33 +8,33 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class MaintenanceModeCommand extends Command {
 
-	protected $up;
+	protected bool $up;
 
-	public function __construct( $name ) {
+	public function __construct( ?string $name = null ) {
 		parent::__construct($name);
 
 		$this->up = $name === 'up';
 	}
 
-	protected function execute( InputInterface $input, OutputInterface $output ) {
+	protected function execute( InputInterface $input, OutputInterface $output ) : int {
 		call_user_func([$this, $this->up ? 'bringUp' : 'bringDown'], $output);
 
 		return 0;
 	}
 
-	protected function bringUp( OutputInterface $output ) {
+	protected function bringUp( OutputInterface $output ) : void {
 		@unlink(PROJECT_PUBLIC . '/OFFLINE');
 
 		$this->printStatus($output, true);
 	}
 
-	protected function bringDown( OutputInterface $output ) {
+	protected function bringDown( OutputInterface $output ) : void {
 		@file_put_contents(PROJECT_PUBLIC . '/OFFLINE', "We are updating. We'll be back very soon.");
 
 		$this->printStatus($output, false);
 	}
 
-	protected function printStatus( OutputInterface $output, $expectOnline ) {
+	protected function printStatus( OutputInterface $output, bool $expectOnline ) : void {
 		usleep(200000);
 
 		$online = !file_exists($file = PROJECT_PUBLIC . '/OFFLINE');

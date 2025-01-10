@@ -7,18 +7,16 @@ use Framework\Aro\ActiveRecordRelationship;
 
 class ToOne extends ActiveRecordRelationship {
 
-	protected function fetch() {
+	protected function fetch() : ?ActiveRecordObject {
 		if ( $foreignId = $this->getForeignId($this->source, $this->foreign) ) {
 			$object = call_user_func([$this->target, 'find'], $foreignId);
 			$object and $this->loadEagers([$object]);
 			return $object;
 		}
+		return null;
 	}
 
-	/**
-	 * @param ActiveRecordObject[] $objects
-	 */
-	protected function fetchAll( array $objects ) {
+	protected function fetchAll( array $objects ) : array {
 		$name = $this->name;
 		$foreignColumn = $this->foreign;
 
@@ -35,7 +33,7 @@ class ToOne extends ActiveRecordRelationship {
 		return $targets;
 	}
 
-	public function getReturnType() {
+	public function getReturnType() : string {
 		return '?\\' . $this->target;
 	}
 

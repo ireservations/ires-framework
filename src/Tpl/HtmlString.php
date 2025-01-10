@@ -6,17 +6,15 @@ use JsonSerializable;
 
 class HtmlString implements JsonSerializable {
 
-	protected $string;
+	public function __construct(
+		protected string $string,
+	) {}
 
-	public function __construct( $string ) {
-		$this->string = $string;
-	}
-
-	public function __toString() {
-		return (string) $this->string;
+	public function __toString() : string {
+		return $this->string;
 	}
 
 	public function jsonSerialize() : mixed {
-		return (string) $this->string;
+		return $this->string;
 	}
 }

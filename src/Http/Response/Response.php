@@ -3,12 +3,16 @@
 namespace Framework\Http\Response;
 
 use ArrayAccess;
+use Framework\Aro\ActiveRecordObject;
 
+/**
+ * @implements ArrayAccess<string, mixed>
+ */
 abstract class Response implements ArrayAccess {
 
-	const CHARSET_UTF8 = 'utf-8';
+	protected const CHARSET_UTF8 = 'utf-8';
 
-	static protected $codes = [
+	protected const CODES = [
 		200 => 'OK',
 		300 => 'Redirecting',
 		400 => 'Error',
@@ -16,6 +20,7 @@ abstract class Response implements ArrayAccess {
 	];
 
 	public int $code;
+	/** @var mixed */
 	public $data;
 	/** @var ?string */
 	protected $contentType;
@@ -24,13 +29,18 @@ abstract class Response implements ArrayAccess {
 	/** @var ?string */
 	protected $downloadFilename;
 
-	public function __construct( $data, $code = null ) {
+	/**
+	 * @param mixed $data
+	 */
+	public function __construct( $data, ?int $code = null ) {
 		$this->code = $code ?: 200;
 		$this->data = $data;
 	}
 
-	/** @return $this */
-	public function contentType( $type, $charset = null ) {
+	/**
+	 * @return $this
+	 */
+	public function contentType( string $type, null|bool|string $charset = null ) {
 		$this->contentType = $type;
 
 		if ( $charset === true ) {
@@ -43,18 +53,20 @@ abstract class Response implements ArrayAccess {
 		return $this;
 	}
 
-	/** @return $this */
-	public function download( $filename ) {
+	/**
+	 * @return $this
+	 */
+	public function download( string $filename ) {
 		$this->downloadFilename = $filename;
 		return $this;
 	}
 
-	protected function printResponseCode() {
-		$codeName = self::$codes[ floor($this->code / 100) * 100 ];
+	protected function printResponseCode() : void {
+		$codeName = self::CODES[ floor($this->code / 100) * 100 ];
 		@header("HTTP/1.1 {$this->code} $codeName");
 	}
 
-	protected function printContentType( $contentType = null, $contentTypeCharset = null, $downloadFilename = null ) {
+	protected function printContentType( ?string $contentType = null, ?string $contentTypeCharset = null, ?string $downloadFilename = null ) : void {
 		$contentType = $contentType ?? $this->contentType;
 		$contentTypeCharset = $contentTypeCharset ?? $this->contentTypeCharset;
 		$downloadFilename = $downloadFilename ?? $this->downloadFilename;
@@ -69,21 +81,28 @@ abstract class Response implements ArrayAccess {
 		}
 	}
 
-	protected function printDebugHeaders() {
-		global $db;
+	/**
+	 * @return void
+	 */
+	protected function printDebugHeaders() : void {
+		$db = ActiveRecordObject::getDbObject();
 		@header('X-Br-Queries: ' . $db->num_queries);
 		@header('X-Br-Time: ' . number_format(microtime(true) - UTC_START, 4, '.', ''));
 		@header('X-Br-Memory: ' . number_format(memory_get_peak_usage()/1e6, 1) . 'M');
 	}
 
-	/** @return void */
+	/**
+	 * @return void
+	 */
 	public function printHeaders() {
 		$this->printResponseCode();
 		$this->printDebugHeaders();
 		$this->printContentType();
 	}
 
-	/** @return void */
+	/**
+	 * @return void
+	 */
 	abstract public function printContent();
 
 	public function offsetExists( $name ) : bool {

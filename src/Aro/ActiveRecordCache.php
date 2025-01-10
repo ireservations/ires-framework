@@ -2,16 +2,15 @@
 
 namespace Framework\Aro;
 
-use App\Services\Aro\AppActiveRecordObject;
-
 class ActiveRecordCache {
 
-	/** @var array<class-string<AppActiveRecordObject>, array<int, AppActiveRecordObject>> */
+	/** @var array<class-string<ActiveRecordObject>, array<int, ActiveRecordObject>> */
 	protected array $objects = [];
 
 	/**
-	 * @param AppActiveRecordObject[] $objects
-	 * @param-out AppActiveRecordObject[] $objects
+	 * @template T of ActiveRecordObject
+	 * @param T[] $objects
+	 * @param-out T[] $objects
 	 */
 	public function addMany( array &$objects ) : void {
 		$class = null;
@@ -32,11 +31,21 @@ class ActiveRecordCache {
 		}
 	}
 
-	public function addOne( string $class, string $id, AppActiveRecordObject $object ) : void {
+	/**
+	 * @template T of ActiveRecordObject
+	 * @param class-string<T> $class
+	 * @param T $object
+	 */
+	public function addOne( string $class, string $id, ActiveRecordObject $object ) : void {
 		$this->objects[$class][$id] = $object;
 	}
 
-	public function get( string $class, string $id ) : AppActiveRecordObject {
+	/**
+	 * @template T of ActiveRecordObject
+	 * @param class-string<T> $class
+	 * @return T
+	 */
+	public function get( string $class, string $id ) : ActiveRecordObject {
 		return $this->objects[$class][$id];
 	}
 

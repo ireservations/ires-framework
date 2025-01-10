@@ -3,6 +3,7 @@
 namespace Framework\Tpl;
 
 use App\Services\Tpl\AppTemplate;
+use Framework\Aro\ActiveRecordObject;
 use Framework\Http\Request;
 
 class Template {
@@ -26,7 +27,7 @@ class Template {
 	 * Display a smarty template
 	 */
 	public function display( string $template, ?string $layout = null, bool $fetch = false ) : ?string {
-		$layout or $layout = static::$layout;
+		if ( !$layout ) $layout = static::$layout;
 
 		$this->beforeDisplay();
 
@@ -46,7 +47,7 @@ class Template {
 	 * Fetch a parsed template as string
 	 */
 	public function fetch( string $template ) : string {
-		global $db;
+		$db = ActiveRecordObject::getDbObject();
 
 		$this->smarty->assign('g_szRequestUri', Request::uri());
 
@@ -110,6 +111,8 @@ class Template {
 
 	/**
 	 * Assign vars to the smarty object
+	 *
+	 * @param string|AssocArray $key
 	 */
 	public function assign( string|array $key, mixed $val = null ) : void {
 		if ( is_array($key) ) {

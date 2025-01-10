@@ -4,15 +4,15 @@ namespace Framework\Common;
 
 trait ValidatesInput {
 
-	static public $dateFormat = 'y-m-d';
+	static public string $dateFormat = 'y-m-d';
 
 	/**
 	 * checkFloat()
 	 *
-	 * @param-out string $time
+	 * @param-out float|string $number
 	 * @return float|false
 	 */
-	public static function checkFloat( &$number ) {
+	public static function checkFloat( mixed &$number ) {
 		$number = (string) $number;
 
 		$a = str_replace(' ', '', str_replace(',', '.', $number));
@@ -31,7 +31,7 @@ trait ValidatesInput {
 	 * @param-out int|string $number
 	 * @return int|false
 	 */
-	public static function checkInt( &$number, $positive = false ) {
+	public static function checkInt( mixed &$number, bool $positive = false ) {
 		$number = (string) $number;
 
 		$a = str_replace(' ', '', str_replace(',', '.', $number));
@@ -60,7 +60,7 @@ trait ValidatesInput {
 	 * @param bool $f_bNoMaxHours If true, 24:00 and 26:00 are valid times. If false they are converted to 00:00 and 02:00
 	 * @return non-falsy-string|false
 	 */
-	public static function checkTime( &$time, $f_bNoMaxHours = true ) {
+	public static function checkTime( mixed &$time, bool $f_bNoMaxHours = true ) {
 		$time = (string) $time;
 
 		if ( !preg_match('/^(\d\d?)(?:(?:\:|\.)(\d\d?))?(?:(?:\:|\.)\d\d?)?(?: ?(am|pm))?$/', strtolower($time), $parrMatch) ) {
@@ -98,7 +98,7 @@ trait ValidatesInput {
 	 * @param-out string $date
 	 * @return non-falsy-string|false
 	 */
-	static public function checkDate( &$date, $format = null ) {
+	static public function checkDate( mixed &$date, ?string $format = null ) {
 		$date = (string) $date;
 
 		if ( $date === 'today' ) {

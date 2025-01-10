@@ -5,14 +5,59 @@ namespace Framework\Console\Commands\CompileModels;
 use PhpMyAdmin\SqlParser\Components\DataType;
 use PhpMyAdmin\SqlParser\Parser;
 use PhpMyAdmin\SqlParser\Statements\CreateStatement;
+use RuntimeException;
 
+/**
+ * @phpstan-type TableColumns array<string, SchemaFieldDefinition>
+ * @phpstan-type AllColumns array<string, TableColumns>
+ */
 class SchemaParser {
 
-	static public function parseDumpSqlTables( string $dumpSql ) : array {
+	/** @var AllColumns */
+	protected array $allColumns;
+
+	public function __construct(
+		protected string $filepath,
+	) {}
+
+	/**
+	 * @return AllColumns
+	 */
+	public function getAllColumns() : array {
+		return $this->allColumns ??= $this->makeAllColumns();
+	}
+
+	/**
+	 * @return TableColumns
+	 */
+	public function getTableColumns(string $table) : array {
+		return $this->getAllColumns()[$table] ?? [];
+	}
+
+	/**
+	 *
+	 */
+	public function getColumn(string $table, string $column) : ?SchemaFieldDefinition {
+		return $this->getTableColumns($table)[$column] ?? null;
+	}
+
+	/**
+	 * @return AllColumns
+	 */
+	protected function makeAllColumns() : array {
+		if (!$this->filepath) {
+			return [];
+		}
+
+		if (!file_exists($this->filepath)) {
+			throw new RuntimeException(sprintf("SQL structure dump file '%s' does not exist.", $this->filepath));
+		}
+
+		$dumpSql = file_get_contents($this->filepath);
+
 		$schemaParser = new Parser($dumpSql);
 
 		$tables = [];
-// $dbTypes = [];
 		foreach ( $schemaParser->statements as $createTable ) {
 			if ( !($createTable instanceof CreateStatement) ) continue;
 			if ( !$createTable->name || !$createTable->name->table ) continue;

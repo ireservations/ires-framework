@@ -13,7 +13,7 @@ class CompileActionsCommand extends Command {
 		$this->setName('compile:actions');
 	}
 
-	protected function execute( InputInterface $input, OutputInterface $output ) {
+	protected function execute( InputInterface $input, OutputInterface $output ) : int {
 		$mapper = AppController::getControllerMapper();
 		$mapping = $mapper->createMapping();
 		$mapper->saveMapping($mapping);

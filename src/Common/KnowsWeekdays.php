@@ -12,13 +12,13 @@ trait KnowsWeekdays {
 	/**
 	 * @param-out string $weekday
 	 */
-	public static function checkWeekday( &$weekday ) : bool {
+	public static function checkWeekday( mixed &$weekday ) : bool {
 		$enFull = self::$weekdaysFull;
 		$enShort = array_map(function($day) {
 			return substr($day, 0, self::$weekdayShortLength);
 		}, $enFull);
 
-		$weekday = strtolower(trim($weekday));
+		$weekday = strtolower(trim((string) $weekday));
 
 		if ( in_array($weekday, $enFull) ) {
 			return true;
@@ -57,8 +57,10 @@ trait KnowsWeekdays {
 	}
 
 
-	/** @return array<int, string> */
-	public static function getWeekdays( $length = 0, $ucfirst = true ) : array {
+	/**
+	 * @return array<int, string>
+	 */
+	public static function getWeekdays( int $length = 0, bool $ucfirst = true ) : array {
 		$options = compact('ucfirst');
 
 		// 0 = SUNDAY

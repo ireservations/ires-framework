@@ -2,11 +2,10 @@
 
 namespace Framework\Aro\Relationship;
 
-use Framework\Aro\ActiveRecordObject;
 
 class ToOneScalarTable extends ToScalar {
 
-	protected function fetch() {
+	protected function fetch() : null|bool|int|float|string {
 		$db = $this->db();
 
 		$qForeignColumn = $this->getFullTargetColumn($this->foreign);
@@ -27,9 +26,9 @@ class ToOneScalarTable extends ToScalar {
 	}
 
 	/**
-	 * @param ActiveRecordObject[] $objects
+	 * @return array<array-key, ?scalar>
 	 */
-	protected function fetchAll( array $objects ) {
+	protected function fetchAll( array $objects ) : array {
 		$name = $this->name;
 		$db = $this->db();
 
@@ -60,7 +59,7 @@ class ToOneScalarTable extends ToScalar {
 		return $targets;
 	}
 
-	public function getReturnType() {
+	public function getReturnType() : string {
 		$nullable = $this->default === null ? '|null' : '';
 		return $this->returnType . $nullable;
 	}

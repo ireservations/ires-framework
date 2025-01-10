@@ -6,109 +6,130 @@ use db_generic;
 
 abstract class ActiveRecordRelationship {
 
-	protected $name;
-	protected $eager = [];
-	/** @var ActiveRecordObject */
-	protected $source;
-	/** @var ActiveRecordObject */
-	protected $target;
-	protected $foreign;
-	protected $local;
-	protected $where;
-	protected $order;
-	protected $key;
-	protected $joins = [];
-	protected $default = null;
+	protected string $name;
+	/** @var list<string> */
+	protected array $eager = [];
+	protected ?string $where = null;
+	protected ?string $order = null;
+	protected null|false|string $key = null;
+	/** @var list<array{string, string}> */
+	protected array $joins = [];
+	protected mixed $default = null;
 
-	public function __construct( ActiveRecordObject $source = null, $targetClass, $foreignColumn, $localColumn = null ) {
-		$this->source = $source;
-		$this->target = $targetClass;
-		$this->foreign = $foreignColumn;
-		$this->local = $localColumn;
-	}
+	public function __construct(
+		protected ActiveRecordObject $source,
+		/** @var class-string<ActiveRecordObject> */
+		protected string $target,
+		protected ?string $foreign,
+		protected ?string $local = null,
+	) {}
 
-	public function load() {
+	public function load() : mixed {
 		return $this->fetch();
 	}
 
-	public function loadAll( array $objects ) {
+	/**
+	 * @param ActiveRecordObject[] $objects
+	 * @return ActiveRecordObject[]
+	 */
+	public function loadAll( array $objects ) : array {
 		return count($objects) ? $this->fetchAll($objects) : [];
 	}
 
-	abstract public function getReturnType();
+	abstract public function getReturnType() : string;
 
-	protected function loadEagers( array $targets ) {
+	/**
+	 * @param ActiveRecordObject[] $targets
+	 */
+	protected function loadEagers( array $targets ) : void {
 		$target = reset($targets);
 		foreach ( $this->eager as $name ) {
 			$target::eager($name, $targets);
 		}
 	}
 
-	abstract protected function fetch();
+	abstract protected function fetch() : mixed;
 
-	abstract protected function fetchAll( array $objects );
+	/**
+	 * @param ActiveRecordObject[] $objects
+	 * @return mixed[]
+	 */
+	abstract protected function fetchAll( array $objects ) : array;
 
-	/** @return $this */
-	public function name( $name ) {
+	/**
+	 * @return $this
+	 */
+	public function name( string $name ) {
 		$this->name = $name;
 		return $this;
 	}
 
-	/** @return $this */
+	/**
+	 * @param list<string> $names
+	 * @return $this
+	 */
 	public function eager( array $names ) {
 		$this->eager = $names;
 		return $this;
 	}
 
-	/** @return $this */
-	public function where( $where, ...$params ) {
-		$this->where = $this->source->db->qmarks($where, ...$params);
-		return $this;
-	}
-
-	/** @return $this */
-	public function order( $order ) {
-		$this->order = $order;
-		return $this;
-	}
-
-	/** @return $this */
-	public function key( $key ) {
-		$this->key = $key;
-		return $this;
-	}
-
-	/** @return $this */
-	public function default( $default ) {
-		$this->default = $default;
-		return $this;
-	}
-
-	/** @return $this */
-	public function join( $table, $on, ...$params ) {
-		$on = $this->source->db->qmarks($on, ...$params);
-		$this->joins[] = [$table, $on];
+	/**
+	 * @return $this
+	 */
+	public function where( ?string $where, mixed ...$params ) {
+		$this->where = !$where ? null : $this->db()->qmarks($where, ...$params);
 		return $this;
 	}
 
 	/**
-	 * @return db_generic
+	 * @return $this
 	 */
-	protected function db() {
-		/** @var db_generic $db */
-		global $db;
-		return $db;
+	public function order( ?string $order ) {
+		$this->order = $order;
+		return $this;
 	}
 
-	protected function getWhereOrder( array $conditions ) {
+	/**
+	 * @return $this
+	 */
+	public function key( null|false|string $key ) {
+		$this->key = $key;
+		return $this;
+	}
+
+	/**
+	 * @return $this
+	 */
+	public function default( mixed $default ) {
+		$this->default = $default;
+		return $this;
+	}
+
+	/**
+	 * @return $this
+	 */
+	public function join( string $table, string $on, mixed ...$params ) {
+		$on = $this->db()->qmarks($on, ...$params);
+		$this->joins[] = [$table, $on];
+		return $this;
+	}
+
+	protected function db() : db_generic {
+		return ActiveRecordObject::getDbObject();
+	}
+
+	/**
+	 * @param list<string>|array<array-key, mixed> $conditions
+	 */
+	protected function getWhereOrder( array $conditions ) : string {
 		$db = $this->db();
 		$conditions = $db->stringifyConditions($conditions);
-		$this->where and $conditions .= ' AND ' . $this->where;
+		if ( $this->where ) $conditions .= ' AND ' . $this->where;
 		$order = $this->order ? " ORDER BY {$this->order}" : '';
 		return $conditions . $order;
 	}
 
-	protected function buildJoins() {
+	protected function buildJoins() : string {
 		$joins = [];
 		foreach ( $this->joins as list($table, $on) ) {
 			$joins[] = "join $table on $on";
@@ -116,17 +137,15 @@ abstract class ActiveRecordRelationship {
 		return implode("\n", $joins);
 	}
 
-	/**
-	 * @param ActiveRecordObject $object
-	 */
-	protected function getForeignId( $object, $column = null ) {
+	protected function getForeignId( ActiveRecordObject $object, ?string $column = null ) : ?int {
 		return $column ? $object->$column : $object->getPKValue();
 	}
 
 	/**
 	 * @param ActiveRecordObject[] $objects
+	 * @return list<int>
 	 */
-	protected function getForeignIds( array $objects, $column = null ) {
+	protected function getForeignIds( array $objects, ?string $column = null ) : array {
 		$ids = [];
 		foreach ( $objects as $object ) {
 			$ids[] = $column ? $object->$column : $object->getPKValue();
@@ -135,7 +154,7 @@ abstract class ActiveRecordRelationship {
 		return array_filter($ids);
 	}
 
-	protected function getKey( ActiveRecordObject $object ) {
+	protected function getKey( ActiveRecordObject $object ) : ?int {
 		if ( $this->key === null ) {
 			return $object->getPKValue();
 		}
@@ -143,13 +162,15 @@ abstract class ActiveRecordRelationship {
 		if ( $this->key ) {
 			return $object->{$this->key};
 		}
+
+		return null;
 	}
 
 	/**
 	 * @param ActiveRecordObject[] $objects
 	 * @return ActiveRecordObject[]
 	 */
-	protected function keyByPk( array $objects, $key = null ) {
+	protected function keyByPk( array $objects, ?string $key = null ) : array {
 		$keyed = [];
 		foreach ( $objects as $object ) {
 			$id = $key ? $object->$key : $object->getPKValue();
@@ -165,7 +186,7 @@ abstract class ActiveRecordRelationship {
 	 * @param ActiveRecordObject[] $objects
 	 * @return ActiveRecordObject[]
 	 */
-	protected function keyByKey( array $objects, $key = null ) {
+	protected function keyByKey( array $objects, ?string $key = null ) : array {
 		$targetClass = $this->target;
 		$key = $key ?? $this->key ?? $targetClass::_pk();
 
@@ -184,22 +205,22 @@ abstract class ActiveRecordRelationship {
 	/**
 	 * @return ActiveRecordObject[]
 	 */
-	protected function findMany( $where ) {
+	protected function findMany( string $where ) : array {
 		$targets = call_user_func([$this->target, 'findMany'], $where);
 		return $targets;
 	}
 
-	protected function getTargetTable() {
+	protected function getTargetTable() : string {
 		$targetClass = $this->target;
 		return $targetClass::_table();
 	}
 
-	protected function getTargetPk() {
+	protected function getTargetPk() : string {
 		$targetClass = $this->target;
 		return $targetClass::_pk();
 	}
 
-	protected function getFullTargetColumn( $column ) {
+	protected function getFullTargetColumn( string $column ) : string {
 		return $this->getTargetTable() . '.' . $column;
 	}
 

@@ -2,33 +2,39 @@
 
 namespace Framework\Aro;
 
-use App\Services\Aro\AppActiveRecordObject;
 use Countable;
+use Closure;
+use db_generic;
 use Iterator;
 use IteratorAggregate;
-use Traversable;
 
 /**
- * @template Value of AppActiveRecordObject
- * @implements IteratorAggregate<int, Value>
+ * @template TValue of ActiveRecordObject
+ * @implements IteratorAggregate<int, TValue>
+ *
+ * @phpstan-import-type Args from db_generic
  */
 class ActiveRecordGenerator implements IteratorAggregate, Countable {
 
-	/** @var class-string<Value> */
+	/** @var class-string<TValue> */
 	protected string $aroClass;
 	protected string $query;
+	/** @var Args */
 	protected array $args = [];
 
-	protected $afterFetch;
-	protected $eagerLoad = [];
-	protected $pageSize;
-	protected $limit;
+	protected ?Closure $afterFetch = null;
+	/** @var list<string> */
+	protected array $eagerLoad = [];
+	protected int $pageSize;
+	protected ?int $limit = null;
 
-	protected $page = 0;
-	protected $total;
+	protected int $page = 0;
+	protected int $total;
 
 	/**
-	 * @param class-string<Value> $aroClass
+	 * @param class-string<TValue> $aroClass
+	 * @param Args $args
+	 * @param AssocArray $options
 	 */
 	public function __construct( string $aroClass, string $query, array $args = [], array $options = [] ) {
 		$this->aroClass = $aroClass;
@@ -39,6 +45,10 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 		$this->setOptions($options);
 	}
 
+	/**
+	 * @param AssocArray $options
+	 * @return $this
+	 */
 	protected function setOptions( array $options ) : static {
 		if ( isset($options['page_size']) ) $this->pager($options['page_size']);
 
@@ -50,31 +60,51 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 		return $this;
 	}
 
+	/**
+	 * @return $this
+	 */
 	public function pager( int $num ) : static {
 		$this->pageSize = $num;
 		return $this;
 	}
 
+	/**
+	 * @return $this
+	 */
 	public function limit( ?int $num ) : static {
 		$this->limit = $num;
 		return $this;
 	}
 
+	/**
+	 * @param list<string> $relationships
+	 * @return $this
+	 */
 	public function eagerLoad( array $relationships ) : static {
 		$this->eagerLoad = $relationships;
 		return $this;
 	}
 
+	/**
+	 * @param list<string> $relationships
+	 * @return $this
+	 */
 	public function eagerLoadMore( array $relationships ) : static {
 		$this->eagerLoad = array_merge($this->eagerLoad, $relationships);
 		return $this;
 	}
 
-	public function afterFetch( callable $callable ) : static {
+	/**
+	 * @return $this
+	 */
+	public function afterFetch( Closure $callable ) : static {
 		$this->afterFetch = $callable;
 		return $this;
 	}
 
+	/**
+	 * @return TValue[]
+	 */
 	protected function fetch() : array {
 		$offset = $this->page++ * $this->pageSize;
 		$objects = call_user_func([$this->aroClass, 'byQuery'], "$this->query LIMIT $this->pageSize OFFSET $offset", $this->args);
@@ -82,6 +112,9 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 		return $objects;
 	}
 
+	/**
+	 * @param TValue[] $objects
+	 */
 	protected function fetched( array $objects ) : void {
 		if ( !count($objects) ) return;
 
@@ -95,6 +128,9 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 		}
 	}
 
+	/**
+	 * @return TValue[]
+	 */
 	public function get( int $length ) : array {
 		$objects = [];
 		foreach ( $this as $object ) {
@@ -108,7 +144,7 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 	}
 
 	/**
-	 * @return Iterator<int, Value>
+	 * @return Iterator<int, TValue>
 	 */
 	public function getIterator() : Iterator {
 		$objects = $this->fetch();
@@ -132,10 +168,7 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 	}
 
 	public function total() : int {
-		if ( $this->total === null ) {
-			$this->total = $this->getTotal();
-		}
-		return $this->total;
+		return $this->total ??= $this->getTotal();
 	}
 
 	protected function getTotal() : int {

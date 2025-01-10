@@ -8,7 +8,7 @@ trait ValidatesTokens {
 
 	public static function makeToken( ?string $name ) : string {
 		if ( !self::$salt ) {
-			return sha1(rand());
+			return sha1(strval(rand()));
 		}
 
 		return sha1(self::$salt . ':' . $name);

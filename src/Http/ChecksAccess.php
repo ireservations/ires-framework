@@ -8,13 +8,15 @@ use Framework\Annotations\Access;
 use Framework\Http\Exception\AccessDeniedException;
 use Framework\Http\Exception\RedirectException;
 use InvalidArgumentException;
-use ReflectionClass;
-use ReflectionMethod;
 
 trait ChecksAccess {
 
+	/** @var array<string, ?int> */
 	protected array $actionAcl = [];
 
+	/**
+	 * @param string|list<string> $zones
+	 */
 	protected function aclAdd( string|array $zones, ?int $arg = null ) : void {
 		$zones = (array) $zones;
 
@@ -23,6 +25,9 @@ trait ChecksAccess {
 		}
 	}
 
+	/**
+	 * @param string|list<string> $zones
+	 */
 	protected function aclRemove( string|array $zones ) : void {
 		$zones = (array) $zones;
 
@@ -98,7 +103,7 @@ trait ChecksAccess {
 
 	protected function aclObject( int $arg ) : ?AppActiveRecordObject {
 		if ( !array_key_exists($arg, $this->actionArgs) ) {
-			throw new InvalidArgumentException($arg);
+			throw new InvalidArgumentException(strval($arg));
 		}
 
 		return $this->actionArgs[$arg];

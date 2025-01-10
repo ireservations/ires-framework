@@ -9,7 +9,7 @@ trait KnowsUser {
 
 	static public ?UserInterface $user = null;
 
-	abstract static public function access( string $zone, AppActiveRecordObject $object = null ) : bool;
+	abstract static public function access( string $zone, ?AppActiveRecordObject $object = null ) : bool;
 
 	abstract static public function logincheck() : bool;
 
@@ -25,7 +25,7 @@ trait KnowsUser {
 		return self::$user ? self::$user->id : $alt;
 	}
 
-	static public function idOrFail( ?int $alt ) {
+	static public function idOrFail( ?int $alt ) : int {
 		if ( $uid = self::idOr($alt) ) {
 			return $uid;
 		}

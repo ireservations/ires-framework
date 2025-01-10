@@ -7,7 +7,7 @@ use Exception;
 
 class NOKResponseException extends Exception {
 
-	public function __construct( $error ) {
+	public function __construct( mixed $error ) {
 		if ( $error instanceof TextResponse ) {
 			$error = $error->data;
 		}

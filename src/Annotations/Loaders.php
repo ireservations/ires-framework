@@ -8,6 +8,7 @@ use Attribute;
 class Loaders {
 
 	public function __construct(
+		/** @var list<string> */
 		public array $methods,
 	) {}
 
