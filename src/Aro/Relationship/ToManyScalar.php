@@ -5,6 +5,16 @@ namespace Framework\Aro\Relationship;
 
 class ToManyScalar extends ToScalar {
 
+	protected ?string $keyType = null;
+
+	/**
+	 * @return $this
+	 */
+	public function keyType( ?string $type ) {
+		$this->keyType = $type;
+		return $this;
+	}
+
 	/**
 	 * @return array<array-key, ?scalar>
 	 */
@@ -68,7 +78,11 @@ class ToManyScalar extends ToScalar {
 	}
 
 	public function getReturnType() : string {
-		return $this->returnType . '[]';
+		if ($this->keyType) {
+			return sprintf('array<%s, %s>', $this->keyType, $this->returnType);
+		}
+
+		return sprintf('array<%s>', $this->returnType);
 	}
 
 }
