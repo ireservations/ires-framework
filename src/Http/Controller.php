@@ -382,16 +382,20 @@ abstract class Controller {
 	 */
 	protected function exceptionToResponse( Throwable $ex ) : Response {
 		if ( $ex instanceof db_duplicate_exception ) {
-			// debug_exit("db_duplicate_exception: " . escapehtml($ex->getMessage()), $ex);
+			if ( Request::semidebug() ) {
+				debug_exit("db_duplicate_exception: " . escapehtml($ex->getMessage()), $ex);
+			}
 
 			$message = 'This record seems to exist. Check input.';
 			$response = new TextResponse($message, 400);
 		}
 
 		elseif ( $ex instanceof db_foreignkey_exception ) {
-			// debug_exit("db_foreignkey_exception: " . escapehtml($ex->getMessage()), $ex);
+			if ( Request::semidebug() ) {
+				debug_exit("db_foreignkey_exception: " . escapehtml($ex->getMessage()), $ex);
+			}
 
-			$table = $ex->getTable() ? ": " . $ex->getTable() : '';
+			$table = $ex->getTable() ? ' (' . $ex->getTable() . ')' : '';
 			$message = "You can't " . $ex->getAction() . " this record, because it still has dependencies$table.";
 			$response = new TextResponse($message, 400);
 		}
