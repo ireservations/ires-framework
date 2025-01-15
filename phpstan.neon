@@ -11,6 +11,7 @@ parameters:
 		AssocArray: 'array<string, mixed>'
 	paths:
 		- src/
+		- tests/
 		- vendor/rdx/phpstan-extra/src/Php/
 		- vendor/rdx/phpstan-extra/src/Ires/
 	phpVersion: 80400
@@ -37,13 +38,14 @@ parameters:
 		- SQL_PASS
 		- SQL_USER
 		- UTC_START
-	reportUnmatchedIgnoredErrors: true
 	treatPhpDocTypesAsCertain: false
 	checkFunctionNameCase: true
 	checkNullables: true
 	checkExplicitMixed: true
 	checkImplicitMixed: true
 	reportMaybes: true
+
+	reportUnmatchedIgnoredErrors: true
 	ignoreErrors:
 		-
 			identifier: trait.unused

@@ -9,6 +9,14 @@
         "friendsofphp/php-cs-fixer": "^3.65",
         "rdx/phpstan-extra": "dev-master"
     },
+    "autoload-dev": {
+        "classmap": [
+            "tests/phpstan"
+        ],
+        "files": [
+            "vendor/rdx/phpstan-extra/src/var-dumper.php"
+        ]
+    },
     "require": {
         "php": "^8.3",
         "smarty/smarty": "^4.1",

@@ -1,7 +1,7 @@
 <?php
 
-use App\Services\Aro\AppActiveRecordObject;
 use App\Services\Session\User;
+use Framework\Aro\ActiveRecordObject;
 use Framework\Http\Request;
 use Framework\Locale\Multilang;
 use Framework\Tpl\HtmlString;
@@ -106,7 +106,10 @@ function array_merge_recursive_distinct( array $array1, array $array2 ) : array 
 }
 
 /**
- * @param array<array-key, AppActiveRecordObject> $objects
+ * @template TAroModel of ActiveRecordObject
+ * @param array<array-key, TAroModel> $objects
+ * @param null|aro-dot-property<TAroModel> $label
+ * @param null|aro-dot-property<TAroModel> $key
  * @return array<array-key, int|float|string>
  */
 function aro_options( array $objects, ?string $label = null, ?string $key = null, bool $sort = false ) : array {
@@ -124,12 +127,13 @@ function aro_options( array $objects, ?string $label = null, ?string $key = null
 }
 
 /**
- * @template TAroModel of AppActiveRecordObject
- * @param array<array-key, TAroModel> $objects
+ * @template TAroModel of ActiveRecordObject
+ * @param array<TAroModel> $objects
+ * @param aro-dot-property<TAroModel> $column
  * @return array<array-key, TAroModel>
  */
 function aro_sort( array $objects, string $column ) : array {
-	usort($objects, function(AppActiveRecordObject $a, AppActiveRecordObject $b) use ($column) {
+	usort($objects, function(ActiveRecordObject $a, ActiveRecordObject $b) use ($column) {
 		$a = array_get($a, $column);
 		$b = array_get($b, $column);
 		return strnatcasecmp($a, $b);
@@ -138,8 +142,9 @@ function aro_sort( array $objects, string $column ) : array {
 }
 
 /**
- * @template TAroModel of AppActiveRecordObject
- * @param array<array-key, TAroModel> $objects
+ * @template TAroModel of ActiveRecordObject
+ * @param array<TAroModel> $objects
+ * @param null|aro-property<TAroModel> $column
  * @return array<array-key, TAroModel>
  */
 function aro_key( array $objects, ?string $column = null ) : array {
