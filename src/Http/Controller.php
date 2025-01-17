@@ -170,7 +170,7 @@ abstract class Controller {
 
 
 	public function getActionMapper() : ActionMapper {
-		return new ActionMapper($this); // @phpstan-ignore argument.type
+		return new ActionMapper($this);
 	}
 
 	static public function getControllerMapper() : ControllerMapper {

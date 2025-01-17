@@ -2,14 +2,14 @@
 
 namespace Framework\Http;
 
-use App\Services\Http\AppController;
+use Framework\Http\Controller as BaseController;
 use ReflectionClass;
 use ReflectionMethod;
 
 class ActionMapper {
 
 	public function __construct(
-		protected AppController $app,
+		protected BaseController $app,
 	) {}
 
 	/**
@@ -35,7 +35,7 @@ class ActionMapper {
 			foreach ( $method->getAttributes() as $attr ) {
 				$verb = explode('\\', $attr->getName());
 				$verb = $verb[count($verb) - 1];
-				if ( in_array($verb, ['Get', 'Post']) ) {
+				if ( in_array($verb, ['All', 'Get', 'Post']) ) {
 					$hooks[] = Hook::withMethod($attr->getArguments()[0], $method->getName(), strtolower($verb));
 				}
 			}

@@ -18,32 +18,31 @@ class ListActionsCommand extends Command {
 	}
 
 	protected function execute( InputInterface $input, OutputInterface $output ) : int {
-		$mapper = AppController::getControllerMapper();
-		$controllers = $mapper->createMapping();
+		$ctrlrMapper = AppController::getControllerMapper();
+		$controllers = $ctrlrMapper->createMapping();
 
-		$actions = $specialActions = $exceptions = [];
+		$actions = $exceptions = [];
 		foreach ( $controllers as $ctrlrPath => [$class, $options] ) {
 			try {
 				$ctrlr = new $class('');
-				$hooks = $ctrlr->getHooks();
+				$actionMapper = $ctrlr->getActionMapper();
+				$hooks = $actionMapper->getMapping();
 
 				foreach ( $hooks as $hook ) {
 					$path = '/' . trim($ctrlrPath . $hook->path, '/');
-					$actions[] = $path;
 
 					$special = [];
 					$method = new ReflectionMethod($class, $hook->action);
 					if ( !$method->isPublic() ) {
-						$special[] = 'NOT PUBLIC';
-					}
-					if ( $hook->method != 'all' ) {
-						$special[] = strtoupper($hook->method);
+						$special[] = ' !! NOT PUBLIC !! ';
 					}
 					if ( count($hook->args) ) {
 						$special[] = 'ARGS';
 					}
-					if ( count($special) ) {
-						$specialActions[] = $path . ' (' . implode(' + ', $special) . ')';
+					$special = count($special) ? '(' . implode(' + ', $special) . ')' : '';
+					$verbs = $hook->method == 'all' ? ['GET', 'POST'] : [strtoupper($hook->method)];
+					foreach ($verbs as $verb) {
+						$actions[] = sprintf('% 4s  %s  %s', $verb, $path, $special);
 					}
 				}
 			}
@@ -53,7 +52,6 @@ class ListActionsCommand extends Command {
 		}
 
 		$showActions = $actions;
-		$showSpecialActions = $specialActions;
 
 		if ( count($greps = $input->getOption('grep')) ) {
 			$filter = function($action) use ($greps) {
@@ -65,19 +63,16 @@ class ListActionsCommand extends Command {
 				return true;
 			};
 			$showActions = array_filter($showActions, $filter);
-			$showSpecialActions = array_filter($showSpecialActions, $filter);
 		}
 
 		sort($showActions);
-		sort($showSpecialActions);
+		usort($showActions, function(string $a, string $b) {
+			return substr($a, 6) <=> substr($b, 6);
+		});
 
 		echo "\n" . count($showActions) . " / " . count($actions) . " actions:\n\n";
 		echo implode("\n", $showActions) . "\n\n";
 		echo "^ " . count($showActions) . " / " . count($actions) . " actions\n";
-
-		echo "\n" . count($showSpecialActions) . " / " . count($specialActions) . " special actions:\n\n";
-		echo implode("\n", $showSpecialActions) . "\n\n";
-		echo "^ " . count($showSpecialActions) . " / " . count($specialActions) . " special actions\n";
 
 		if ( $exceptions ) {
 			echo "\nerrors:\n";
