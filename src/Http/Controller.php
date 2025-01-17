@@ -128,7 +128,8 @@ abstract class Controller {
 
 		$route = strtr($route, static::$action_path_wildcard_aliases);
 
-		$regex = strtr($route, static::$action_path_wildcards);
+		$regex = str_replace('.', '\.', $route);
+		$regex = strtr($regex, static::$action_path_wildcards);
 		$regex = "#^$regex$#";
 
 		if ( preg_match($regex, $uri, $params) ) {
