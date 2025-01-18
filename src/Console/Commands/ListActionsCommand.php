@@ -97,6 +97,8 @@ class ListActionsCommand extends Command {
 			}
 			echo "\n";
 
+			$this->showOtherPublicMethods($otherPublicMethods);
+
 			return 0;
 		}
 
@@ -135,11 +137,7 @@ class ListActionsCommand extends Command {
 			echo "\n";
 		}
 
-		if ( $otherPublicMethods ) {
-			echo "Other public methods:\n";
-			print_r($otherPublicMethods);
-			echo "\n";
-		}
+		$this->showOtherPublicMethods($otherPublicMethods);
 
 		if ( $errors ) {
 			echo "Errors:\n";
@@ -148,6 +146,17 @@ class ListActionsCommand extends Command {
 		}
 
 		return 0;
+	}
+
+	/**
+	 * @param list<string> $methods
+	 */
+	private function showOtherPublicMethods(array $methods) : void {
+		if ( count($methods) ) {
+			echo "Other public methods:\n";
+			print_r($methods);
+			echo "\n";
+		}
 	}
 
 	/**
