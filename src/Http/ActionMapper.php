@@ -2,41 +2,56 @@
 
 namespace Framework\Http;
 
+use Framework\Annotations\Route;
 use Framework\Http\Controller as BaseController;
+use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionMethod;
 
+/**
+ * @phpstan-type Mapping array<Hook>
+ */
 class ActionMapper {
+
+	/** @var Mapping */
+	protected array $mapping;
 
 	public function __construct(
 		protected BaseController $app,
 	) {}
 
 	/**
-	 * @return list<Hook>
+	 * @return Mapping
 	 */
 	public function getMapping() : array {
+		if ( isset($this->mapping) ) {
+			return $this->mapping;
+		}
+
 		// $file = self::getMappingFile();
 		// if ( file_exists($file) ) {
 		// 	return include $file;
 		// }
 
-		return $this->createMapping();
+		return $this->mapping = $this->createMapping();
 	}
 
 	/**
-	 * @return list<Hook>
+	 * @return Mapping
 	 */
 	protected function createMappingFromReflection() : array {
 		$reflClass = new ReflectionClass($this->app);
 
 		$hooks = [];
 		foreach ( $reflClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method ) {
-			foreach ( $method->getAttributes() as $attr ) {
-				$verb = explode('\\', $attr->getName());
-				$verb = $verb[count($verb) - 1];
-				if ( in_array($verb, ['All', 'Get', 'Post']) ) {
-					$hooks[] = Hook::withMethod($attr->getArguments()[0], $method->getName(), strtolower($verb));
+			foreach ( $method->getAttributes(Route::class, ReflectionAttribute::IS_INSTANCEOF) as $reflAttr ) {
+				$route = $reflAttr->newInstance();
+				$hook = Hook::withMethod($route->path, $method->getName(), $route->method, $route->options);
+				if ( $route->name ) {
+					$hooks[$route->name] = $hook;
+				}
+				else {
+					$hooks[] = $hook;
 				}
 			}
 		}
@@ -45,9 +60,10 @@ class ActionMapper {
 	}
 
 	/**
-	 * @return list<Hook>
+	 * @return Mapping
 	 */
 	protected function createMapping() : array {
+// $t = microtime(true);
 		$methods = ['get', 'post'];
 		$methodKeys = array_flip($methods);
 
@@ -58,14 +74,20 @@ class ActionMapper {
 					$args = $hook;
 					$hook = $hook[0];
 					unset($args[0]);
+					$name = $args['name'] ?? null;
+					unset($args['name']);
 
-					$hooks[] = Hook::withArgs($path, $hook, $args);
+					$hookObject = Hook::withArgs($path, $hook, $args);
+					$name ? ($hooks[$name] = $hookObject) : ($hooks[] = $hookObject);
 				}
 				else {
+					$args = array_diff_key($hook, $methodKeys);
+					$name = $args['name'] ?? null;
+					unset($args['name']);
 					foreach ( $methods as $method ) {
 						if ( isset($hook[$method]) ) {
-							$args = array_diff_key($hook, $methodKeys);
-							$hooks[] = Hook::withMethod($path, $hook[$method], $method, $args);
+							$hookObject = Hook::withMethod($path, $hook[$method], $method, $args);
+							$name ? ($hooks[$name] = $hookObject) : ($hooks[] = $hookObject);
 						}
 					}
 				}
@@ -75,10 +97,13 @@ class ActionMapper {
 			}
 		}
 
-		if ( !count($hooks) ) {
-			return $this->createMappingFromReflection();
+		if ( count($hooks) ) {
+// dump(1000 * (microtime(true) - $t));
+			return $hooks;
 		}
 
+		$hooks = $this->createMappingFromReflection();
+// dump(1000 * (microtime(true) - $t));
 		return $hooks;
 	}
 

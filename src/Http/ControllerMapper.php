@@ -2,55 +2,73 @@
 
 namespace Framework\Http;
 
+use App\Services\Http\AppController;
 use Framework\Annotations\Controller;
 use Framework\Annotations\ControllerAnnotationInterface;
-use Framework\Http\Controller as BaseController;
 use Generator;
 use ReflectionAttribute;
 use ReflectionClass;
 
 /**
- * @phpstan-type AttributeValues AssocArray
- * @phpstan-type Mapping array<string, array{class-string<BaseController>, AttributeValues}>
+ * @phpstan-type Mapping array<CompiledController>
  */
 class ControllerMapper {
 
 	/** @var list<class-string> */
 	static protected array $beforeClasses;
 
+	/** @var Mapping */
+	protected array $mapping;
+
 	/**
 	 * @return Mapping
 	 */
 	public function getMapping() : array {
-		$file = self::getMappingFile();
-		if ( file_exists($file) ) {
-			return include $file;
+		if ( isset($this->mapping) ) {
+			return $this->mapping;
 		}
 
-		return $this->createMapping();
+		$file = self::getMappingFile();
+		if ( file_exists($file) ) {
+			return $this->mapping = include $file;
+		}
+
+		return $this->mapping = $this->createMapping();
 	}
 
 	/**
 	 * @return Mapping
 	 */
 	public function createMapping() : array {
-// $t = microtime(1);
+// $t = microtime(true);
 		$controllers = $this->getAllControllerClasses(PROJECT_LOGIC);
+
 		$prefixes = [];
 		foreach ( $controllers as $controllerRefl ) {
+			$ctrlrOptions = $this->getControllerOptions($controllerRefl);
+
 			$attributes = $controllerRefl->getAttributes(Controller::class);
-			$values = null;
-			foreach ( $attributes as $attribute ) {
-				$ctrlr = $attribute->newInstance();
-				$values ??= $this->getAttributeValues($controllerRefl);
-				$prefixes[$ctrlr->prefix] = [
+			foreach ( $attributes as $reflAttribute ) {
+				$ctrlr = $reflAttribute->newInstance();
+				$compiled = new CompiledController(
+					$ctrlr->prefix,
 					$controllerRefl->getName(),
-					$values,
-				];
+					$ctrlrOptions,
+				);
+				if ( $ctrlr->name ) {
+					$prefixes[$ctrlr->name] = $compiled;
+				}
+				else {
+					$prefixes[] = $compiled;
+				}
 			}
 		}
-		uksort($prefixes, fn($a, $b) => strlen($b) <=> strlen($a));
-// dump(1000 * (microtime(1) - $t));
+
+		uasort($prefixes, function(CompiledController $a, CompiledController $b) {
+			return strlen($b->path) <=> strlen($a->path);
+		});
+
+// dump(1000 * (microtime(true) - $t));
 		return $prefixes;
 	}
 
@@ -58,16 +76,26 @@ class ControllerMapper {
 	 * @param Mapping $mapping
 	 */
 	public function saveMapping( array $mapping ) : void {
-		$file = self::getMappingFile();
-		$mapping = $this->createMapping();
+		// $items = [];
+		// foreach ( $mapping as $index => $info ) {
+		// 	$value = implode(",\n", array_map(fn(mixed $sub) => var_export($sub, true), $info));
+		// 	$item = sprintf("%s => new CompiledController(\n%s\n),", is_int($index) ? $index : "'$index'", $value);
+		// 	$items[] = $item;
+		// }
+		// $code = "<?php\n\nuse " . CompiledController::class . ";\n\nreturn [\n" . implode("\n\n", $items) . "\n];\n";
+
+		// $code = "<?php\n\nreturn unserialize('" . serialize($mapping) . "');\n";
+
 		$code = "<?php\n\nreturn " . var_export($mapping, true) . ";\n";
+
+		$file = self::getMappingFile();
 		file_put_contents($file, $code);
 	}
 
 	/**
-	 * @return AttributeValues
+	 * @return AssocArray
 	 */
-	protected function getAttributeValues( ReflectionClass $reflection ) : array {
+	protected function getControllerOptions( ReflectionClass $reflection ) : array {
 		$attributes = $this->getAttributes($reflection);
 		$values = [];
 		foreach ( $attributes as $attribute ) {

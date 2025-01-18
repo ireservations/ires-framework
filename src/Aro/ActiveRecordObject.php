@@ -3,7 +3,6 @@
 namespace Framework\Aro;
 
 use ArrayAccess;
-use db_exception;
 use db_generic;
 
 /**
@@ -73,9 +72,7 @@ abstract class ActiveRecordObject implements ArrayAccess {
 
 
 
-	/**
-	 * Whether the db data have been loaded
-	 */
+	/** Whether the db data have been loaded */
 	protected bool $_loaded = true;
 
 	/**

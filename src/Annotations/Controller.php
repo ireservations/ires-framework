@@ -11,6 +11,7 @@ class Controller {
 
 	public function __construct(
 		string $prefix,
+		public ?string $name = null,
 	) {
 		$this->prefix = trim($prefix, '/');
 	}

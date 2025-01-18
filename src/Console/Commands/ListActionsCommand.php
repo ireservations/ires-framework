@@ -3,7 +3,9 @@
 namespace Framework\Console\Commands;
 
 use Framework\Console\Command;
-use App\Services\Http\AppController;
+use Framework\Http\Controller;
+use Framework\Http\Hook;
+use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
 use Symfony\Component\Console\Input\InputInterface;
@@ -14,26 +16,33 @@ class ListActionsCommand extends Command {
 
 	protected function configure() {
 		$this->setName('list:actions');
+		$this->addOption('controllers', null, InputOption::VALUE_NONE);
 		$this->addOption('grep', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED);
 	}
 
 	protected function execute( InputInterface $input, OutputInterface $output ) : int {
-		$ctrlrMapper = AppController::getControllerMapper();
+		$ctrlrMapper = Controller::getControllerMapper();
 		$controllers = $ctrlrMapper->createMapping();
 
-		$actions = $exceptions = [];
-		foreach ( $controllers as $ctrlrPath => [$class, $options] ) {
+		$actions = $otherPublicMethods = $actionsPerController = $errors = [];
+		foreach ( $controllers as $compiledCtrlr ) {
 			try {
+				$class = $compiledCtrlr->class;
 				$ctrlr = new $class('');
 				$actionMapper = $ctrlr->getActionMapper();
 				$hooks = $actionMapper->getMapping();
+				$actionsPerController[$class] = count(array_unique(array_map(function(Hook $hook) {
+					return $hook->action;
+				}, $hooks)));
 
+				$actionMethods = [];
 				foreach ( $hooks as $hook ) {
-					$path = '/' . trim($ctrlrPath . $hook->path, '/');
+					$actionMethods[] = $hook->action;
+					$path = '/' . trim($compiledCtrlr->path . $hook->path, '/');
 
 					$special = [];
-					$method = new ReflectionMethod($class, $hook->action);
-					if ( !$method->isPublic() ) {
+					$reflMethod = new ReflectionMethod($class, $hook->action);
+					if ( !$reflMethod->isPublic() ) {
 						$special[] = ' !! NOT PUBLIC !! ';
 					}
 					if ( count($hook->args) ) {
@@ -42,17 +51,47 @@ class ListActionsCommand extends Command {
 					$special = count($special) ? '(' . implode(' + ', $special) . ')' : '';
 					$verbs = $hook->method == 'all' ? ['GET', 'POST'] : [strtoupper($hook->method)];
 					foreach ($verbs as $verb) {
-						$actions[] = sprintf('% 4s  %s  %s', $verb, $path, $special);
+						$fullAction = sprintf('% 4s  %s  %s', $verb, $path, $special);
+						if ( in_array($fullAction, $actions) ) {
+							$errors[] = 'DOUBLE: ' . $fullAction;
+						}
+						$actions[] = $fullAction;
+					}
+				}
+
+				foreach ( (new ReflectionClass($class))->getMethods() as $reflMethod ) {
+					if (
+						!$reflMethod->isStatic() &&
+						$reflMethod->isPublic() &&
+						!in_array($reflMethod->getName(), $actionMethods) &&
+						!$reflMethod->getDeclaringClass()->isAbstract()
+					) {
+						$otherPublicMethods[] = sprintf('%s::%s()', $class, $reflMethod->getName());
 					}
 				}
 			}
 			catch ( ReflectionException $ex) {
-				$exceptions[] = $ex->getMessage();
+				$errors[] = $ex->getMessage();
 			}
 		}
 
-		$showActions = $actions;
+		if ( $input->getOption('controllers') ) {
+			echo "\nMethods per controller (" . count($actionsPerController) . "):\n\n";
+			$ctrlrPrefix = $this->findCommonNamespace(array_keys($actionsPerController));
+			uksort($actionsPerController, function(string $a, string $b) {
+				// strtolower - group `members\AbcContr` with `MembersContr`
+				// str_replace - `members\Abc` comes after `MembersContr` but before `memberships\Abc`
+				return str_replace('\\', 'd', strtolower($a)) <=> str_replace('\\', 'd', strtolower($b));
+			});
+			foreach ( $actionsPerController as $ctrlrClass => $numActions ) {
+				printf("% 4d  %s\n", $numActions, substr($ctrlrClass, strlen($ctrlrPrefix)));
+			}
+			echo "\n";
 
+			return 0;
+		}
+
+		$showActions = $actions;
 		if ( count($greps = $input->getOption('grep')) ) {
 			$filter = function($action) use ($greps) {
 				foreach ( $greps as $grep ) {
@@ -70,16 +109,43 @@ class ListActionsCommand extends Command {
 			return substr($a, 6) <=> substr($b, 6);
 		});
 
-		echo "\n" . count($showActions) . " / " . count($actions) . " actions:\n\n";
-		echo implode("\n", $showActions) . "\n\n";
-		echo "^ " . count($showActions) . " / " . count($actions) . " actions\n";
+		echo "\n";
+		echo "v " . count($showActions) . " / " . count($actions) . " actions:\n\n";
+		echo " " . implode("\n ", $showActions) . "\n\n";
+		echo "^ " . count($showActions) . " / " . count($actions) . " actions\n\n";
 
-		if ( $exceptions ) {
-			echo "\nerrors:\n";
-			print_r($exceptions);
+		if ( $otherPublicMethods ) {
+			echo "Other public methods:\n";
+			print_r($otherPublicMethods);
+			echo "\n";
+		}
+
+		if ( $errors ) {
+			echo "Errors:\n";
+			print_r($errors);
+			echo "\n";
 		}
 
 		return 0;
+	}
+
+	/**
+	 * @param list<string> $names
+	 */
+	private function findCommonNamespace(array $names) : string {
+		$potentials = explode('\\', $names[0]);
+		for ( $i = count($potentials); $i > 0; $i-- ) {
+			$attempt = implode('\\', array_slice($potentials, 0, $i));
+			foreach ( $names as $name ) {
+				if ( !str_starts_with($name, $attempt) ) {
+					continue 2;
+				}
+			}
+
+			return "$attempt\\";
+		}
+
+		return '';
 	}
 
 }

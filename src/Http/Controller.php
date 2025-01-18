@@ -7,6 +7,10 @@ use App\Services\Aro\AppActiveRecordObject;
 use App\Services\Http\AppController;
 use App\Services\Session\User;
 use App\Services\Tpl\AppTemplate;
+use db_duplicate_exception;
+use db_exception;
+use db_foreignkey_exception;
+use db_generic;
 use Framework\Annotations\AroToken;
 use Framework\Annotations\Loaders;
 use Framework\Aro\ActiveRecordException;
@@ -26,10 +30,6 @@ use ReflectionMethod;
 use ReflectionNamedType;
 use RuntimeException;
 use Throwable;
-use db_duplicate_exception;
-use db_exception;
-use db_foreignkey_exception;
-use db_generic;
 
 abstract class Controller {
 
@@ -47,6 +47,10 @@ abstract class Controller {
 		'#' => 'INT',
 		'*' => 'STRING',
 	);
+
+	static ControllerMapper $_controllerMapper;
+	/** @var array<class-string<self>, ActionMapper> */
+	static array $_actionMappers = [];
 
 	protected string $fullRequestUri = '';
 	protected string $actionPath = '';
@@ -84,7 +88,7 @@ abstract class Controller {
 	/**
 	 * E v a l u a t e s   a n d   r e t u r n s   t h e   r e q u e s t   U R I
 	 */
-	public static function getRequestUri() : string {
+	static public function getRequestUri() : string {
 		$uri = Request::uri();
 
 		if ( function_exists('apache_setenv') ) {
@@ -94,29 +98,67 @@ abstract class Controller {
 		return $uri;
 	}
 
-	/**
-	 * @param ?array{} $params
-	 * @param-out ?array<mixed> $params
-	 */
-	static protected function matchControllerRoute( string $route, string $uri, ?array &$params, ?string &$path ) : bool {
-		$params = [];
+	static public function route( string $name, mixed ...$allArgs ) : string {
+		$nameParts = explode('.', $name, 2);
+		if ( count($nameParts) < 2 ) {
+			throw new RuntimeException(sprintf("Too few parts for route name '%s'", $name));
+		}
 
-		$route = strtr($route, static::$action_path_wildcard_aliases);
+		$ctrlrMapping = static::getControllerMapper()->getMapping();
+		if ( !isset($ctrlrMapping[ $nameParts[0] ]) ) {
+			throw new RuntimeException(sprintf("No controller found for route name '%s'", $name));
+		}
+
+		$compiledCtrlr = $ctrlrMapping[ $nameParts[0] ];
+		$ctrlrClass = $compiledCtrlr->class;
+
+		$actionMapper = static::$_actionMappers[$ctrlrClass] ??= (new $ctrlrClass(''))->getActionMapper();
+		$actionMapping = $actionMapper->getMapping();
+		if ( !isset($actionMapping[ $nameParts[1] ]) ) {
+			throw new RuntimeException(sprintf("No action found for route name '%s'", $name));
+		}
+
+		$hook = $actionMapping[ $nameParts[1] ];
+		$fullPath = '/' . trim($compiledCtrlr->path . $hook->path, '/');
+		$fullPath = strtr($fullPath, static::$action_path_wildcard_aliases);
+
+		$regex = '#\b(' . implode('|', array_keys(static::$action_path_wildcards)) . ')\b#';
+		$fullPath = preg_replace_callback($regex, function() use ($name, &$allArgs) {
+			if ( !count($allArgs) ) {
+				throw new RuntimeException(sprintf("Too few args for route name '%s'", $name));
+			}
+
+			$arg = array_shift($allArgs);
+			if ( $arg instanceof AppActiveRecordObject ) $arg = $arg->getPKValue();
+			return $arg;
+		}, $fullPath);
+
+		if ( count($allArgs) ) {
+			throw new RuntimeException(sprintf("Too many args for route name '%s'", $name));
+		}
+
+		return $fullPath;
+	}
+
+	static protected function matchControllerRoute( CompiledController $compiledCtrlr, string $fullUri ) : ?ControllerMatch {
+		$route = strtr($compiledCtrlr->path, static::$action_path_wildcard_aliases);
 
 		$regex = strtr($route, static::$action_path_wildcards);
 		$regex = "#^$regex(/.*|$)#";
 
-		if ( preg_match($regex, $uri, $params) ) {
-			array_shift($params);
-
-			$path = trim(array_pop($params), '/');
-
-			$params = self::matchParams($route, $params);
-
-			return $params !== null;
+		if ( !preg_match($regex, $fullUri, $ctrlrArgs) ) {
+			return null;
 		}
 
-		return false;
+		array_shift($ctrlrArgs);
+		$actionPath = trim(array_pop($ctrlrArgs), '/');
+
+		$ctrlrArgs = self::matchParams($route, $ctrlrArgs);
+		if ( !is_array($ctrlrArgs) ) {
+			return null;
+		}
+
+		return new ControllerMatch($compiledCtrlr, $ctrlrArgs, $actionPath);
 	}
 
 	/**
@@ -175,7 +217,7 @@ abstract class Controller {
 	}
 
 	static public function getControllerMapper() : ControllerMapper {
-		return new ControllerMapper();
+		return static::$_controllerMapper ??= new ControllerMapper();
 	}
 
 
@@ -184,39 +226,37 @@ abstract class Controller {
 	 *
 	 * @param AssocArray $addCtrlrOptions
 	 */
-	public static function makeApplication( string $fullUri, array $addCtrlrOptions = [] ) : AppController {
-		[$ctrlrClass, $actionPath, $ctrlrArgs, $ctrlrOptions] = static::findController($fullUri);
-		$ctrlrOptions = array_merge_recursive_distinct($ctrlrOptions, $addCtrlrOptions);
-		$application = new $ctrlrClass($actionPath, $ctrlrArgs, $ctrlrOptions);
+	static public function makeApplication( string $fullUri, array $addCtrlrOptions = [] ) : AppController {
+		$ctrlrMatch = static::findController($fullUri);
+		$compiledCtrlr = $ctrlrMatch->compiledCtrlr;
+		$ctrlrOptions = array_merge_recursive_distinct($compiledCtrlr->options, $addCtrlrOptions);
+		$ctrlrClass = $compiledCtrlr->class;
 
+		$application = new $ctrlrClass($ctrlrMatch->actionPath, $ctrlrMatch->ctrlrArgs, $ctrlrOptions);
 		$application->fullRequestUri = '/' . trim($fullUri, '/');
+
 		return $application;
 	}
 
 
-	/**
-	 * @return array{string, string, list<mixed>, AssocArray}
-	 */
-	static protected function findController( string $uri ) : array {
-		$uri = trim($uri, '/');
+	static protected function findController( string $fullUri ) : ControllerMatch {
+		$fullUri = trim($fullUri, '/');
 
 		$mapping = static::getControllerMapper()->getMapping();
 
-		$homeCtrlr = $mapping[''] ?? [HomeController::class, []];
+		$homeCtrlr = $mapping['home'] ?? new CompiledController('', HomeController::class);
 
-		if ( $uri === '' ) {
-			[$class, $ctrlrOptions] = $homeCtrlr;
-			return [$class, '', [], $ctrlrOptions];
+		if ( $fullUri === '' ) {
+			return new ControllerMatch($homeCtrlr, [], '');
 		}
 
-		foreach ( $mapping as $prefix => [$class, $ctrlrOptions] ) {
-			if ( self::matchControllerRoute($prefix, $uri, $params, $path) ) {
-				return [$class, $path, $params, $ctrlrOptions];
+		foreach ( $mapping as $compiledCtrlr ) {
+			if ( $match = self::matchControllerRoute($compiledCtrlr, $fullUri) ) {
+				return $match;
 			}
 		}
 
-		[$class, $ctrlrOptions] = $homeCtrlr;
-		return [$class, $uri, [], $ctrlrOptions];
+		return new ControllerMatch($homeCtrlr, [], $fullUri);
 	}
 
 
@@ -349,7 +389,7 @@ abstract class Controller {
 	}
 
 	/**
-	 * @return Hook[]
+	 * @return array<Hook>
 	 */
 	public function getHooks() : array {
 		return $this->hookObjects ??= $this->getActionMapper()->getMapping();
@@ -435,6 +475,8 @@ abstract class Controller {
 		}
 
 		elseif ( $ex instanceof RuntimeException ) {
+			debug_exit("Uncaught " . get_class($ex) . ": " . escapehtml($ex->getMessage()) . ' on ' . basename($ex->getFile()) . ':' . $ex->getLine(), $ex);
+
 			$response = new TextResponse($ex->getMessage(), 500);
 		}
 
@@ -459,7 +501,7 @@ abstract class Controller {
 		return new RedirectResponse($location, $options);
 	}
 
-	protected function forward( string $uri ) : AppController {
+	protected function forward( string $uri ) : self {
 		return static::makeApplication($uri);
 	}
 
@@ -589,7 +631,7 @@ abstract class Controller {
 	 *
 	 * @param AssocArray $data
 	 */
-	public function jsonError( string $error, array $data = [] ) : JsonResponse {
+	protected function jsonError( string $error, array $data = [] ) : JsonResponse {
 		$data += ['error' => $error];
 		return new JsonResponse($data, 400);
 	}
@@ -600,7 +642,7 @@ abstract class Controller {
 	 *
 	 * @param AssocArray $data
 	 */
-	public function json( array $data, bool $jsonp = false ) : JsonResponse {
+	protected function json( array $data, bool $jsonp = false ) : JsonResponse {
 		$jsonp = $jsonp && isset($_GET['jsonp']) ? $_GET['jsonp'] : '';
 		return new JsonResponse($data, null, $jsonp);
 	}
