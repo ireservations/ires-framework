@@ -9,12 +9,16 @@ use ReflectionClass;
 use ReflectionMethod;
 
 /**
+ * @phpstan-type Source 'hooks_array'|'annotations'
  * @phpstan-type Mapping array<Hook>
  */
 class ActionMapper {
 
 	/** @var Mapping */
 	protected array $mapping;
+
+	/** @var Source */
+	protected string $source;
 
 	public function __construct(
 		protected BaseController $app,
@@ -28,12 +32,14 @@ class ActionMapper {
 			return $this->mapping;
 		}
 
-		// $file = self::getMappingFile();
-		// if ( file_exists($file) ) {
-		// 	return include $file;
-		// }
-
 		return $this->mapping = $this->createMapping();
+	}
+
+	/**
+	 * @return Source
+	 */
+	public function getSource() : string {
+		return $this->source;
 	}
 
 	/**
@@ -62,8 +68,7 @@ class ActionMapper {
 	/**
 	 * @return Mapping
 	 */
-	protected function createMapping() : array {
-// $t = microtime(true);
+	protected function createMappingFromHooksArray() : array {
 		$methods = ['get', 'post'];
 		$methodKeys = array_flip($methods);
 
@@ -97,18 +102,24 @@ class ActionMapper {
 			}
 		}
 
-		if ( count($hooks) ) {
-// dump(1000 * (microtime(true) - $t));
-			return $hooks;
-		}
-
-		$hooks = $this->createMappingFromReflection();
-// dump(1000 * (microtime(true) - $t));
 		return $hooks;
 	}
 
-	// public function saveMapping( array $mapping ) : void {
-	// }
+	/**
+	 * @return Mapping
+	 */
+	protected function createMapping() : array {
+// $t = microtime(true);
+		$hooks = $this->createMappingFromHooksArray();
+		$this->source = 'hooks_array';
+		if ( !count($hooks) ) {
+			$this->source = 'annotations';
+			$hooks = $this->createMappingFromReflection();
+		}
+
+// dump(1000 * (microtime(true) - $t));
+		return $hooks;
+	}
 
 	protected function getMappingFile() : string {
 		return realpath(PROJECT_RUNTIME) . DIRECTORY_SEPARATOR . 'actions.php';

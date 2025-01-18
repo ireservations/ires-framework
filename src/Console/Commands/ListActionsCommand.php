@@ -21,10 +21,12 @@ class ListActionsCommand extends Command {
 	}
 
 	protected function execute( InputInterface $input, OutputInterface $output ) : int {
+		$verbose = $output->isVerbose();
+
 		$ctrlrMapper = Controller::getControllerMapper();
 		$controllers = $ctrlrMapper->createMapping();
 
-		$actions = $otherPublicMethods = $actionsPerController = $errors = [];
+		$actions = $otherPublicMethods = $actionsPerController = $sourcePerController = $errors = [];
 		foreach ( $controllers as $compiledCtrlr ) {
 			try {
 				$class = $compiledCtrlr->class;
@@ -34,6 +36,7 @@ class ListActionsCommand extends Command {
 				$actionsPerController[$class] = count(array_unique(array_map(function(Hook $hook) {
 					return $hook->action;
 				}, $hooks)));
+				$sourcePerController[$class] = $actionMapper->getSource();
 
 				$actionMethods = [];
 				foreach ( $hooks as $hook ) {
@@ -76,6 +79,10 @@ class ListActionsCommand extends Command {
 		}
 
 		if ( $input->getOption('controllers') ) {
+			$sources = array_count_values($sourcePerController);
+			arsort($sources);
+			$mostSource = key($sources);
+
 			echo "\nMethods per controller (" . count($actionsPerController) . "):\n\n";
 			$ctrlrPrefix = $this->findCommonNamespace(array_keys($actionsPerController));
 			uksort($actionsPerController, function(string $a, string $b) {
@@ -84,7 +91,9 @@ class ListActionsCommand extends Command {
 				return str_replace('\\', 'd', strtolower($a)) <=> str_replace('\\', 'd', strtolower($b));
 			});
 			foreach ( $actionsPerController as $ctrlrClass => $numActions ) {
-				printf("% 4d  %s\n", $numActions, substr($ctrlrClass, strlen($ctrlrPrefix)));
+				$source = $sourcePerController[$ctrlrClass];
+				$source = $source == $mostSource ? '' : '(' . $source . ')';
+				printf("% 4d  %s  %s\n", $numActions, substr($ctrlrClass, strlen($ctrlrPrefix)), $source);
 			}
 			echo "\n";
 
@@ -113,6 +122,18 @@ class ListActionsCommand extends Command {
 		echo "v " . count($showActions) . " / " . count($actions) . " actions:\n\n";
 		echo " " . implode("\n ", $showActions) . "\n\n";
 		echo "^ " . count($showActions) . " / " . count($actions) . " actions\n\n";
+
+		if ( $verbose ) {
+			echo "Actions per source type:\n";
+			$sources = [];
+			foreach ( $actionsPerController as $ctrlrClass => $numActions ) {
+				$source = $sourcePerController[$ctrlrClass];
+				$sources[$source] ??= 0;
+				$sources[$source] += $numActions;
+			}
+			print_r($sources);
+			echo "\n";
+		}
 
 		if ( $otherPublicMethods ) {
 			echo "Other public methods:\n";
