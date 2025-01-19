@@ -19,6 +19,7 @@ abstract class db_generic {
 	public ?Closure $query_logger = null;
 	/** @var list<string> */
 	public array $queries = array();
+	protected int $lastQueriesIndex = 0;
 	protected int $transaction = 0;
 
 
@@ -76,6 +77,17 @@ abstract class db_generic {
 	abstract public function insert_id() : int;
 
 	abstract public function affected_rows() : int;
+
+
+
+	/**
+	 * @return list<string>
+	 */
+	public function getNewQueries() : array {
+		$queries = array_slice($this->queries, $this->lastQueriesIndex);
+		$this->lastQueriesIndex = count($this->queries);
+		return $queries;
+	}
 
 
 
