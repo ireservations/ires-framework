@@ -227,6 +227,8 @@ abstract class Controller {
 	 * @param AssocArray $addCtrlrOptions
 	 */
 	static public function makeApplication( string $fullUri, array $addCtrlrOptions = [] ) : AppController {
+// if ( count($addCtrlrOptions) ) debug_exit('Constructing application with $addCtrlrOptions', $addCtrlrOptions);
+
 		$ctrlrMatch = static::findController($fullUri);
 		$compiledCtrlr = $ctrlrMatch->compiledCtrlr;
 		$ctrlrOptions = array_merge_recursive_distinct($compiledCtrlr->options, $addCtrlrOptions);

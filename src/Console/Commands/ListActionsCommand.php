@@ -97,6 +97,12 @@ class ListActionsCommand extends Command {
 			}
 			echo "\n";
 
+			if ( $verbose ) {
+				echo "Controllers per source type:\n";
+				print_r($sources);
+				echo "\n";
+			}
+
 			$this->showOtherPublicMethods($otherPublicMethods);
 
 			return 0;
