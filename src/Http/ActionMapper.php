@@ -76,22 +76,22 @@ class ActionMapper {
 		foreach ( $this->app->getRawHooks() as $path => $hook ) {
 			if ( is_array($hook) ) {
 				if ( isset($hook[0]) ) {
-					$args = $hook;
+					$options = $hook;
 					$hook = $hook[0];
-					unset($args[0]);
-					$name = $args['name'] ?? null;
-					unset($args['name']);
+					unset($options[0]);
+					$name = $options['name'] ?? null;
+					unset($options['name']);
 
-					$hookObject = Hook::withArgs($path, $hook, $args);
+					$hookObject = Hook::withOptions($path, $hook, $options);
 					$name ? ($hooks[$name] = $hookObject) : ($hooks[] = $hookObject);
 				}
 				else {
-					$args = array_diff_key($hook, $methodKeys);
-					$name = $args['name'] ?? null;
-					unset($args['name']);
+					$options = array_diff_key($hook, $methodKeys);
+					$name = $options['name'] ?? null;
+					unset($options['name']);
 					foreach ( $methods as $method ) {
 						if ( isset($hook[$method]) ) {
-							$hookObject = Hook::withMethod($path, $hook[$method], $method, $args);
+							$hookObject = Hook::withMethod($path, $hook[$method], $method, $options);
 							$name ? ($hooks[$name] = $hookObject) : ($hooks[] = $hookObject);
 						}
 					}

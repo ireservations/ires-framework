@@ -20,8 +20,7 @@ class db_mysqli extends db_generic {
 			// $this->dbCon->options(MYSQLI_SET_CHARSET_NAME, 'utf8');
 			$this->dbCon->options(MYSQLI_OPT_INT_AND_FLOAT_NATIVE, 1);
 
-			list($names, $collate) = explode(':', defined('SQL_CHARSET') ? SQL_CHARSET : 'utf8:utf8_general_ci');
-			$this->dbCon->query("SET NAMES '$names' COLLATE '$collate'");
+			$this->dbCon->query("SET NAMES 'utf8' COLLATE 'utf8_general_ci'");
 		}
 		catch ( Exception $ex ) {
 			$this->dbCon = null;

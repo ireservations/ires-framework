@@ -48,8 +48,8 @@ class ListActionsCommand extends Command {
 					if ( !$reflMethod->isPublic() ) {
 						$special[] = ' !! NOT PUBLIC !! ';
 					}
-					if ( count($hook->args) ) {
-						$special[] = 'ARGS';
+					if ( count($hook->options) ) {
+						$special[] = 'OPTIONS';
 					}
 					$special = count($special) ? '(' . implode(' + ', $special) . ')' : '';
 					$verbs = $hook->method == 'all' ? ['GET', 'POST'] : [strtoupper($hook->method)];

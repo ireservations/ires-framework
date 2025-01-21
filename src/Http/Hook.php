@@ -9,23 +9,23 @@ final class Hook {
 		public string $action,
 		public string $method = 'all',
 		/** @var AssocArray */
-		public array $args = [],
+		public array $options = [],
 	) {}
 
 	/**
-	 * @param AssocArray $args
+	 * @param AssocArray $options
 	 * @return static
 	 */
-	static public function withArgs( string $path, string $action, array $args ) {
-		return new static($path, $action, args: $args);
+	static public function withOptions( string $path, string $action, array $options ) {
+		return new static($path, $action, options: $options);
 	}
 
 	/**
-	 * @param AssocArray $args
+	 * @param AssocArray $options
 	 * @return static
 	 */
-	static public function withMethod( string $path, string $action, string $method, array $args = [] ) {
-		return new static($path, $action, method: strtolower($method), args: $args);
+	static public function withMethod( string $path, string $action, string $method, array $options = [] ) {
+		return new static($path, $action, method: strtolower($method), options: $options);
 	}
 
 	/**

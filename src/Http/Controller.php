@@ -54,7 +54,6 @@ abstract class Controller {
 
 	protected string $fullRequestUri = '';
 	protected string $actionPath = '';
-	protected string $actionMatch = '';
 
 	/** @var AssocArray */
 	protected $m_arrHooks = [];
@@ -63,7 +62,6 @@ abstract class Controller {
 	/** @var list<Hook> */
 	protected array $hookObjects;
 
-	protected ?ReflectionClass $ctrlrReflection = null;
 	/** @var AssocArray */
 	protected array $ctrlrOptions = [
 		'access' => true,
@@ -242,6 +240,7 @@ abstract class Controller {
 
 
 	static protected function findController( string $fullUri ) : ControllerMatch {
+// $t = microtime(true);
 		$fullUri = trim($fullUri, '/');
 
 		$mapping = static::getControllerMapper()->getMapping();
@@ -254,6 +253,7 @@ abstract class Controller {
 
 		foreach ( $mapping as $compiledCtrlr ) {
 			if ( $match = self::matchControllerRoute($compiledCtrlr, $fullUri) ) {
+// dump(1000 * (microtime(true) - $t));
 				return $match;
 			}
 		}
@@ -319,64 +319,69 @@ abstract class Controller {
 	protected function executeAction() : mixed {
 		$this->__preload();
 
+// $t = microtime(true);
 		$requestMethods = ['all', strtolower(Request::method())];
 
 		foreach ( $this->getHooks() AS $hook ) {
-			if ( self::matchActionRoute($hook->path, $this->actionPath, $actionArgs) ) {
-				if ( in_array($hook->method, $requestMethods) && is_callable(array($this, $hook->action)) ) {
-					$this->actionOptions = $hook->args;
-					$this->actionMatch = $hook->path;
+			if ( !self::matchActionRoute($hook->path, $this->actionPath, $actionArgs) ) {
+				continue;
+			}
 
-					$this->actionReflection = $method = new ReflectionMethod($this, $hook->action);
-					$loaders = count($attributes = $method->getAttributes(Loaders::class)) ? $attributes[0]->newInstance()->methods : [];
+			if ( !in_array($hook->method, $requestMethods) || !is_callable(array($this, $hook->action)) ) {
+				continue;
+			}
+// dump(1000 * (microtime(true) - $t));
 
-					$this->actionCallback = $hook->action;
+			$this->actionOptions = $hook->options;
 
-					$this->__loaded();
+			$this->actionReflection = $method = new ReflectionMethod($this, $hook->action);
+			$loaders = count($attributes = $method->getAttributes(Loaders::class)) ? $attributes[0]->newInstance()->methods : [];
 
-					// Objectize ARO params
-					foreach ( $method->getParameters() AS $i => $param ) {
-						$required = !$param->isOptional();
-						$type = null;
-						if ( ($tp = $param->getType()) instanceof ReflectionNamedType && !$tp->isBuiltin() ) {
-							$type = $tp->getName();
-						}
+			$this->actionCallback = $hook->action;
 
-						// Missing arg
-						if ( !isset($actionArgs[$i]) ) {
-							if ( $required ) {
-								break 2;
-							}
-							else {
-								$actionArgs[$i] = $param->getDefaultValue();
-							}
-						}
-						// Load arg
-						elseif ( $type ) {
-							$loader = $loaders[$i] ?? 'load';
-							$id = $actionArgs[$i];
+			$this->__loaded();
 
-							// Object loaded
-							if ( $object = call_user_func([$type, $loader], $id) ) {
-								$actionArgs[$i] = $object;
-							}
-							// Object not found
-							else {
-								break 2;
-							}
-						}
+			// Objectize ARO params
+			foreach ( $method->getParameters() AS $i => $param ) {
+				$required = !$param->isOptional();
+				$type = null;
+				if ( ($tp = $param->getType()) instanceof ReflectionNamedType && !$tp->isBuiltin() ) {
+					$type = $tp->getName();
+				}
+
+				// Missing arg
+				if ( !isset($actionArgs[$i]) ) {
+					if ( $required ) {
+						break 2;
 					}
+					else {
+						$actionArgs[$i] = $param->getDefaultValue();
+					}
+				}
+				// Load arg
+				elseif ( $type ) {
+					$loader = $loaders[$i] ?? 'load';
+					$id = $actionArgs[$i];
 
-					$this->actionArgs = $actionArgs;
-
-					// Action access
-					$this->aclAlterAction();
-
-					$this->__start();
-
-					return call_user_func_array(array($this, $hook->action), $this->actionArgs);
+					// Object loaded
+					if ( $object = call_user_func([$type, $loader], $id) ) {
+						$actionArgs[$i] = $object;
+					}
+					// Object not found
+					else {
+						break 2;
+					}
 				}
 			}
+
+			$this->actionArgs = $actionArgs;
+
+			// Action access
+			$this->aclAlterAction();
+
+			$this->__start();
+
+			return call_user_func_array([$this, $hook->action], $this->actionArgs);
 		}
 
 		return $this->notFound();
@@ -393,7 +398,7 @@ abstract class Controller {
 	/**
 	 * @return array<Hook>
 	 */
-	public function getHooks() : array {
+	protected function getHooks() : array {
 		return $this->hookObjects ??= $this->getActionMapper()->getMapping();
 	}
 
@@ -510,7 +515,7 @@ abstract class Controller {
 
 	protected function notFound( string $message = '' ) : never {
 		if ( $message ) $message = " - $message";
-		throw new NotFoundException($this->fullRequestUri . $message);
+		throw new NotFoundException(Request::method() . ' ' . $this->fullRequestUri . $message);
 	}
 
 	protected function accessDenied( string $message = '' ) : never {
