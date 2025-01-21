@@ -52,7 +52,7 @@ parameters:
 			path: src/Common/
 
 		# Silly reflection generics
-		- "#^Property .+ with generic class Reflection\\w+ does not specify its types#"
+		# - "#^Property .+ with generic class Reflection\\w+ does not specify its types#"
 		- "#^Method .+ has parameter .+ with generic class Reflection\\w+ but does not specify its types#"
 		- "#^Method .+ return type with generic class Reflection\\w+ does not specify its types#"
 

@@ -2,7 +2,6 @@
 
 namespace Framework\Http;
 
-use App\Services\Http\AppController;
 use Framework\Annotations\Controller;
 use Framework\Annotations\ControllerAnnotationInterface;
 use Generator;
