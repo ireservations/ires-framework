@@ -60,7 +60,7 @@ function array_set( ?array &$array, string|array $path, mixed $value ) : void {
 		$container = &$container[$name];
 	}
 
-	$container = $value; // @phpstan-ignore paramOut.type
+	$container = $value; // @phpstan-ignore paramOut.type,rudie.UnusedVariablesRule
 }
 
 /**

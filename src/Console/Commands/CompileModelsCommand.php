@@ -48,7 +48,8 @@ class CompileModelsCommand extends Command {
 		// Find all models
 		$models = glob(PROJECT_ARO . '/*.php');
 		$classesOutput = [];
-		$missingReturnType = $explicitGetters = [];
+		$missingReturnType = [];
+		// $explicitGetters = [];
 
 		/** @var PhpParser\NameContext[] $imports */
 		$imports = [];
@@ -311,7 +312,7 @@ class CompileModelsCommand extends Command {
 	}
 
 	protected function getMethodReturnType( ReflectionMethod $method ) : string {
-		$return = $origReturn = $this->getCommentType($method->getDocComment(), 'return');
+		$return = $this->getCommentType($method->getDocComment(), 'return');
 		if ( $return ) {
 			if ( strpos($return, '<') !== false ||  strpos($return, '{') !== false || strpos($return, '|') !== false ) {
 				// echo $method->getName() . ":\n";

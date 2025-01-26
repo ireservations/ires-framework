@@ -37,7 +37,7 @@ class MaintenanceModeCommand extends Command {
 	protected function printStatus( OutputInterface $output, bool $expectOnline ) : void {
 		usleep(200000);
 
-		$online = !file_exists($file = PROJECT_PUBLIC . '/OFFLINE');
+		$online = !file_exists(PROJECT_PUBLIC . '/OFFLINE');
 		$error = $online != $expectOnline ? ' !! ' : '';
 		$still = $error ? ' still' : '';
 
