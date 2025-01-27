@@ -33,15 +33,15 @@ class Smarty extends BaseSmarty {
 		];
 
 		// Route smarty function: {route name='invoices.edit' args=[123]}
-		$this->registerPlugin('function', 'route', function(array $params, Smarty_Internal_Template $smarty) {
-			$args = is_array($params['args'] ?? []) ? ($params['args'] ?? []) : [$params['args']];
-			$path = AppController::route($params['name'], ...$args);
-			if ( !empty($params['assign']) ) {
-				$smarty->assign($params['assign'], $path);
-				return '';
-			}
-			return $path;
-		});
+		// $this->registerPlugin('function', 'route', function(array $params, Smarty_Internal_Template $smarty) {
+		// 	$args = is_array($params['args'] ?? []) ? ($params['args'] ?? []) : [$params['args']];
+		// 	$path = AppController::route($params['name'], ...$args);
+		// 	if ( !empty($params['assign']) ) {
+		// 		$smarty->assign($params['assign'], $path);
+		// 		return '';
+		// 	}
+		// 	return $path;
+		// });
 
 		// Route real function: {route('invoices.edit', 123)}
 		$this->registerPlugin('modifier', 'route', route(...));
