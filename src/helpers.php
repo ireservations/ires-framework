@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Http\AppController;
 use App\Services\Session\User;
 use Framework\Aro\ActiveRecordObject;
 use Framework\Http\Request;
@@ -8,6 +9,10 @@ use Framework\Tpl\HtmlString;
 use Symfony\Component\VarDumper\Cloner\VarCloner;
 use Symfony\Component\VarDumper\Dumper\HtmlDumper;
 use Symfony\Component\VarDumper\VarDumper;
+
+function route(string $route, mixed ...$args) : string {
+	return AppController::route($route, ...$args);
+}
 
 /**
  * @param AssocArray $options

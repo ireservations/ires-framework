@@ -5,6 +5,7 @@ namespace Framework\Tpl;
 use App\Services\Http\AppController;
 use Smarty as BaseSmarty;
 use Smarty_Internal_Template;
+use Smarty_Security;
 
 class Smarty extends BaseSmarty {
 
@@ -31,7 +32,7 @@ class Smarty extends BaseSmarty {
 			PROJECT_VENDORS . '/smarty/smarty/libs/plugins',
 		];
 
-		// Route function: {route name='invoices.edit' args=[123]}
+		// Route smarty function: {route name='invoices.edit' args=[123]}
 		$this->registerPlugin('function', 'route', function(array $params, Smarty_Internal_Template $smarty) {
 			$args = is_array($params['args'] ?? []) ? ($params['args'] ?? []) : [$params['args']];
 			$path = AppController::route($params['name'], ...$args);
@@ -41,6 +42,9 @@ class Smarty extends BaseSmarty {
 			}
 			return $path;
 		});
+
+		// Route real function: {route('invoices.edit', 123)}
+		$this->registerPlugin('modifier', 'route', route(...));
 
 		// Template name/ext
 		$this->default_template_handler_func = function(string $type, string $name, ?string $content, ?int $modified, self $smarty) : string {
