@@ -271,7 +271,7 @@ function debug_exit( string $title, mixed $more = '' ) : void {
 			kprint_r($trace);
 		}
 
-		exit;
+		exit(1);
 	}
 	else {
 		/** @var list<string> $g_arrErrorMessages */

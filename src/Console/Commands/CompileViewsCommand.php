@@ -15,12 +15,17 @@ class CompileViewsCommand extends Command {
 	}
 
 	protected function execute( InputInterface $input, OutputInterface $output ) : int {
-		touch(sprintf('%s/compileviews.tmp', PROJECT_SMARTY_TPLS));
-		$cmd = sprintf('rm -f %s/*.php', PROJECT_SMARTY_TPLS);
+		$tpl = AppTemplate::instance();
+		$compileDir = rtrim($tpl->smarty->compile_dir, '/');
+
+		touch(sprintf('%s/compileviews.tmp.php', $compileDir));
+
+		$cmd = sprintf('rm -f %s/*.php', $compileDir);
 		shell_exec($cmd);
 
-		$tpl = AppTemplate::instance();
 		$tpl->smarty->compileAllTemplates($tpl->smarty->_tpl_extension, true, 99, 999);
+
+		shell_exec($cmd);
 
 		return 0;
 	}
