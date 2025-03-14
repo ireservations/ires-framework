@@ -56,7 +56,7 @@ abstract class Response implements ArrayAccess {
 	/**
 	 * @return $this
 	 */
-	public function download( string $filename ) {
+	public function download( ?string $filename ) {
 		$this->downloadFilename = $filename;
 		return $this;
 	}
