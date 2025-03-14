@@ -520,7 +520,7 @@ abstract class Controller {
 
 	protected function accessDenied( string $message = '' ) : never {
 		if ( $message ) $message = " - $message";
-		throw new AccessDeniedException($this->fullRequestUri . $message);
+		throw new AccessDeniedException(Request::method() . ' ' . $this->fullRequestUri . $message);
 	}
 
 	/**

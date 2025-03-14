@@ -17,11 +17,14 @@ class ListActionsCommand extends Command {
 	protected function configure() {
 		$this->setName('list:actions');
 		$this->addOption('controllers', null, InputOption::VALUE_NONE);
+		$this->addOption('only-controller', null, InputOption::VALUE_REQUIRED);
 		$this->addOption('grep', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED);
 	}
 
 	protected function execute( InputInterface $input, OutputInterface $output ) : int {
 		$verbose = $output->isVerbose();
+
+		$onlyController = $input->getOption('only-controller');
 
 		$ctrlrMapper = Controller::getControllerMapper();
 		$controllers = $ctrlrMapper->createMapping();
@@ -30,6 +33,10 @@ class ListActionsCommand extends Command {
 		foreach ( $controllers as $compiledCtrlr ) {
 			try {
 				$class = $compiledCtrlr->class;
+				if ( $onlyController && $onlyController != (new ReflectionClass($class))->getShortName() ) {
+					continue;
+				}
+
 				$ctrlr = new $class('');
 				$actionMapper = $ctrlr->getActionMapper();
 				$hooks = $actionMapper->getMapping();
@@ -74,7 +81,7 @@ class ListActionsCommand extends Command {
 				}
 			}
 			catch ( ReflectionException $ex) {
-				$errors[] = $ex->getMessage();
+				$errors[] = get_class($ex) . ': ' . $ex->getMessage() . ' (and rest of controller not analyzed)';
 			}
 		}
 

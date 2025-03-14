@@ -7,6 +7,7 @@ use Framework\Http\Controller as BaseController;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionMethod;
+use RuntimeException;
 
 /**
  * @phpstan-type Source 'hooks_array'|'annotations'
@@ -45,7 +46,7 @@ class ActionMapper {
 	/**
 	 * @return Mapping
 	 */
-	protected function createMappingFromReflection() : array {
+	protected function createMappingFromAnnotations() : array {
 		$reflClass = new ReflectionClass($this->app);
 
 		$hooks = [];
@@ -54,6 +55,9 @@ class ActionMapper {
 				$route = $reflAttr->newInstance();
 				$hook = Hook::withMethod($route->path, $method->getName(), $route->method, $route->options);
 				if ( $route->name ) {
+					if ( isset($hooks[$route->name]) ) {
+						throw new RuntimeException(sprintf("Route with name '%s' already exists.", $route->name));
+					}
 					$hooks[$route->name] = $hook;
 				}
 				else {
@@ -83,6 +87,9 @@ class ActionMapper {
 					unset($options['name']);
 
 					$hookObject = Hook::withOptions($path, $hook, $options);
+					if ( isset($hooks[$name]) ) {
+						throw new RuntimeException(sprintf("Route with name '%s' already exists.", $name));
+					}
 					$name ? ($hooks[$name] = $hookObject) : ($hooks[] = $hookObject);
 				}
 				else {
@@ -92,6 +99,9 @@ class ActionMapper {
 					foreach ( $methods as $method ) {
 						if ( isset($hook[$method]) ) {
 							$hookObject = Hook::withMethod($path, $hook[$method], $method, $options);
+							if ( isset($hooks[$name]) ) {
+								throw new RuntimeException(sprintf("Route with name '%s' already exists.", $name));
+							}
 							$name ? ($hooks[$name] = $hookObject) : ($hooks[] = $hookObject);
 						}
 					}
@@ -114,7 +124,7 @@ class ActionMapper {
 		$this->source = 'hooks_array';
 		if ( !count($hooks) ) {
 			$this->source = 'annotations';
-			$hooks = $this->createMappingFromReflection();
+			$hooks = $this->createMappingFromAnnotations();
 		}
 
 // dump(1000 * (microtime(true) - $t));
