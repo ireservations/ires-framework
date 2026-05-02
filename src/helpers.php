@@ -24,28 +24,32 @@ function trans( string $key, array $options = [] ) : string {
 	return $g_language->translate($key, $options);
 }
 
-/**
- * @template T
- * @param array<array-key, T> $arr
- * @return ($arr is non-empty-array ? T : T|null)
- */
-function array_first( array $arr ) : mixed {
-	if ( count($arr) == 0 ) return null;
+if (!function_exists('array_first')) {
+	/**
+	 * @template T
+	 * @param array<array-key, T> $arr
+	 * @return ($arr is non-empty-array ? T : T|null)
+	 */
+	function array_first( array $arr ) : mixed {
+		if ( count($arr) == 0 ) return null;
 
-	reset($arr);
-	return current($arr);
+		reset($arr);
+		return current($arr);
+	}
 }
 
-/**
- * @template T
- * @param array<array-key, T> $arr
- * @return ($arr is non-empty-array ? T : T|null)
- */
-function array_last( $arr ) {
-	if ( count($arr) == 0 ) return null;
+if (!function_exists('array_first')) {
+	/**
+	 * @template T
+	 * @param array<array-key, T> $arr
+	 * @return ($arr is non-empty-array ? T : T|null)
+	 */
+	function array_last( $arr ) {
+		if ( count($arr) == 0 ) return null;
 
-	reset($arr);
-	return end($arr);
+		reset($arr);
+		return end($arr);
+	}
 }
 
 /**
@@ -113,8 +117,8 @@ function array_merge_recursive_distinct( array $array1, array $array2 ) : array 
 /**
  * @template TAroModel of ActiveRecordObject
  * @param array<array-key, TAroModel> $objects
- * @param null|aro-dot-property<TAroModel> $label
- * @param null|aro-dot-property<TAroModel> $key
+ * @ param null|aro-dot-property<TAroModel> $label
+ * @ param null|aro-dot-property<TAroModel> $key
  * @return array<array-key, int|float|string>
  */
 function aro_options( array $objects, ?string $label = null, ?string $key = null, bool $sort = false ) : array {
@@ -134,7 +138,7 @@ function aro_options( array $objects, ?string $label = null, ?string $key = null
 /**
  * @template TAroModel of ActiveRecordObject
  * @param array<TAroModel> $objects
- * @param aro-dot-property<TAroModel> $column
+ * @ param aro-dot-property<TAroModel> $column
  * @return array<array-key, TAroModel>
  */
 function aro_sort( array $objects, string $column ) : array {
@@ -149,7 +153,7 @@ function aro_sort( array $objects, string $column ) : array {
 /**
  * @template TAroModel of ActiveRecordObject
  * @param array<TAroModel> $objects
- * @param null|aro-property<TAroModel> $column
+ * @ param null|aro-property<TAroModel> $column
  * @return array<array-key, TAroModel>
  */
 function aro_key( array $objects, ?string $column = null ) : array {
