@@ -38,7 +38,7 @@ if (!function_exists('array_first')) {
 	}
 }
 
-if (!function_exists('array_first')) {
+if (!function_exists('array_last')) {
 	/**
 	 * @template T
 	 * @param array<array-key, T> $arr
