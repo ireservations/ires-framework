@@ -62,11 +62,8 @@ class ToManyThrough extends ActiveRecordRelationship {
 
 		$grouped = [];
 		foreach ( $objects as $object ) {
-			foreach ( $object->{$this->throughRelationship} as $id ) {
-				if ( $target = $targets[$id] ?? null ) {
-					$grouped[$object->getPKValue()][] = $target;
-				}
-			}
+			$keepIds = $object->{$this->throughRelationship};
+			$grouped[$object->getPKValue()] = array_intersect_key($targets, array_flip($keepIds));
 		}
 
 		foreach ( $objects as $object ) {
