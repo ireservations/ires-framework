@@ -95,6 +95,7 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 	}
 
 	/**
+	 * @param (Closure(list<TValue>): void) $callable
 	 * @return $this
 	 */
 	public function afterFetch( Closure $callable ) : static {
