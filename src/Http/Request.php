@@ -113,7 +113,7 @@ class Request {
 	 */
 	static public function action( string ...$actions ) : array {
 		$_action = $_REQUEST['_action'] ?? '';
-		$bools = array_map(function( $name ) use ( $_action ) {
+		$bools = array_map(function(string $name) use ($_action) {
 			return $_action === $name;
 		}, $actions);
 

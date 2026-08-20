@@ -75,6 +75,7 @@ class CompileModelsCommand extends Command {
 		$gettypes = [];
 		$nullStrings = [];
 		foreach ( get_declared_classes() as $className ) {
+			/** @var ReflectionClass<AppActiveRecordObject> $class */
 			$class = new ReflectionClass($className);
 
 			if ( $class->isAbstract() ) continue;
@@ -92,7 +93,6 @@ class CompileModelsCommand extends Command {
 				$dbTables = [...$dbTables, ...$attribute->getTables()];
 			}
 
-			/** @var ReflectionClass<AppActiveRecordObject> $class */
 			$query = call_user_func([$class->getName(), 'getQuery'], '');
 
 			$classOutput = strtr($_classOutput, [

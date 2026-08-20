@@ -16,6 +16,7 @@ abstract class db_generic {
 
 	public int $num_queries = 0;
 	public bool $log_queries = false;
+	/** @var Closure(string, int): void */
 	public ?Closure $query_logger = null;
 	/** @var list<string> */
 	public array $queries = array();
@@ -339,7 +340,7 @@ abstract class db_generic {
 	public function count_rows( string $query ) : int {
 		$query = trim(rtrim($query, ';'));
 		$n = 0;
-		$query = preg_replace_callback('#(\S+\.\*)#', function($m) use (&$n) {
+		$query = preg_replace_callback('#(\S+\.\*)#', function(array $m) use (&$n) {
 			return '1 as x' . (++$n);
 		}, $query);
 		return (int) $this->fetch_one("SELECT COUNT(1) num FROM ($query) x");

@@ -4,7 +4,7 @@ namespace App\Services\Aro {
 	class AppActiveRecordObject extends \Framework\Aro\ActiveRecordObject {
 		use \Framework\Aro\LogsChanges;
 
-		public function _logChangesLog( string $type, array $changes ) : void {} // @phpstan-ignore missingType.iterableValue
+		public function _logChangesLog( string $type, array $changes ) : void {}
 	}
 }
 

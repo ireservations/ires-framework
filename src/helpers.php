@@ -69,7 +69,7 @@ function array_set( ?array &$array, string|array $path, mixed $value ) : void {
 		$container = &$container[$name];
 	}
 
-	$container = $value; // @phpstan-ignore paramOut.type,rudie.UnusedVariablesRule
+	$container = $value; // @phpstan-ignore rudie.UnusedVariablesRule
 }
 
 /**
@@ -125,12 +125,12 @@ function aro_options( array $objects, ?string $label = null, ?string $key = null
 	$options = array();
 	foreach ( $objects AS $object ) {
 		$keyValue = $key ? array_get($object, $key) : $object->getPKValue();
-		$labelValue = $label ? array_get($object, $label) : ($object instanceof Stringable ? strval($object) : $object->getPKValue());
+		$labelValue = $label ? (string) array_get($object, $label) : ($object instanceof Stringable ? strval($object) : $object->getPKValue());
 
 		$options[$keyValue] = $labelValue;
 	}
 
-	$sort and natcasesort($options);
+	if ($sort) natcasesort($options);
 
 	return $options;
 }
@@ -241,7 +241,7 @@ function timetostr( string $format, ?int $utc = null, null|int|string $language 
 	}
 
 	$options = ['language' => $language, 'ucfirst' => false];
-	$date = preg_replace_callback('/~~~@(.*?)~~~/', function($match) use ($options) {
+	$date = preg_replace_callback('/~~~@(.*?)~~~/', function(array $match) use ($options) {
 		return trans('DATE__' . strtoupper($match[1]), $options);
 	}, $date);
 	return $date;
@@ -304,7 +304,7 @@ function _debug_backtrace( array $trace = [] ) : array {
 		$trace = array_slice($trace, 1);
 	}
 
-	$trace = array_map(function($item) {
+	$trace = array_map(function(array $item) {
 		$type = !empty($item['object']) ? '->' : '::';
 		$class = !empty($item['class']) ? strval($item['class']) . $type : '';
 		$line = isset($item['line']) ? ' (' . strval($item['line']) . ')' : '';

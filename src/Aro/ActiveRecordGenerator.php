@@ -12,6 +12,7 @@ use IteratorAggregate;
  * @template TValue of ActiveRecordObject
  * @implements IteratorAggregate<int, TValue>
  *
+ * @phpstan-type AfterFetch (Closure(list<TValue>): void)
  * @phpstan-import-type Args from db_generic
  */
 class ActiveRecordGenerator implements IteratorAggregate, Countable {
@@ -22,6 +23,7 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 	/** @var Args */
 	protected array $args = [];
 
+	/** @var AfterFetch */
 	protected ?Closure $afterFetch = null;
 	/** @var list<string> */
 	protected array $eagerLoad = [];
@@ -95,7 +97,7 @@ class ActiveRecordGenerator implements IteratorAggregate, Countable {
 	}
 
 	/**
-	 * @param (Closure(list<TValue>): void) $callable
+	 * @param AfterFetch $callable
 	 * @return $this
 	 */
 	public function afterFetch( Closure $callable ) : static {

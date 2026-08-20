@@ -109,7 +109,7 @@ class MigrateCommand extends Command {
 
 		$updates = $this->getUpdates();
 		if ( count($updates) ) {
-			$numbers = array_map(function($name) {
+			$numbers = array_map(function(string $name) {
 				return (int) $name;
 			}, array_keys($updates));
 			rsort($numbers, SORT_NUMERIC);

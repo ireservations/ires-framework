@@ -6,9 +6,13 @@ use Closure;
 use Framework\Aro\ActiveRecordObject;
 use Framework\Aro\ActiveRecordRelationship;
 
+/**
+ * @phpstan-type Caster null|string|(Closure(mixed): mixed)
+ */
 abstract class ToScalar extends ActiveRecordRelationship {
 
 	protected string $throughTable;
+	/** @var Caster */
 	protected null|string|Closure $cast = null;
 
 	protected string $returnType = 'string';
@@ -28,6 +32,7 @@ abstract class ToScalar extends ActiveRecordRelationship {
 	}
 
 	/**
+	 * @param Caster $callback
 	 * @return $this
 	 */
 	public function cast( null|string|Closure $callback ) {

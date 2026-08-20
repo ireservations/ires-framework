@@ -34,7 +34,7 @@ class VersionCommand extends Command {
 	protected function makeNewVersion( string $curVersion ) : string {
 		list($numbers, $name) = explode('-', $curVersion . '-');
 
-		$numbers = array_map(function($component) {
+		$numbers = array_map(function(string $component) {
 			return (int) $component;
 		}, explode('.', $numbers));
 

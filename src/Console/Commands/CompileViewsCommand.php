@@ -16,7 +16,7 @@ class CompileViewsCommand extends Command {
 
 	protected function execute( InputInterface $input, OutputInterface $output ) : int {
 		$tpl = AppTemplate::instance();
-		$compileDir = rtrim($tpl->smarty->compile_dir, '/');
+		$compileDir = rtrim($tpl->smarty->getCompileDir(), '/');
 
 		touch(sprintf('%s/compileviews.tmp.php', $compileDir));
 

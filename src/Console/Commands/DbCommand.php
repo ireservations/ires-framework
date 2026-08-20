@@ -19,7 +19,7 @@ class DbCommand extends Command {
 		$process = new Process(['mysql', '-u' . SQL_USER, '-p' . SQL_PASS, SQL_DB]);
 		$process->setTimeout(null);
 		$process->setTty(true);
-		$process->mustRun(function($type, $buffer) use ($output) {
+		$process->mustRun(function(string $type, string $buffer) use ($output) {
 			$output->write($buffer);
 		});
 

@@ -117,7 +117,7 @@ class ListActionsCommand extends Command {
 
 		$showActions = $actions;
 		if ( count($greps = $input->getOption('grep')) ) {
-			$filter = function($action) use ($greps) {
+			$filter = function(string $action) use ($greps) {
 				foreach ( $greps as $grep ) {
 					if ( strpos($action, $grep) === false ) {
 						return false;

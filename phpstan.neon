@@ -60,3 +60,6 @@ parameters:
 		- "#^Cannot access offset .+ on mixed#"
 		- "#^Cannot cast mixed to (int|float|string)#"
 		- "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported#"
+		- "#^Possibly invalid array key type mixed\\.$#"
+		- "#^Parameter .+ of function (implode|array_diff|array_unique|array_intersect|sort|asort) expects .+, (array|list|.+mixed.+) given#"
+		# - identifier: binaryOp.invalid

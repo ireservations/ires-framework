@@ -5,8 +5,12 @@ namespace Framework\Errors;
 use Closure;
 use ErrorException;
 
+/**
+ * @phpstan-type Handler Closure(int, string, string, int): void
+ */
 class ErrorHandler {
 
+	/** @var Handler */
 	static protected ?Closure $handler = null;
 
 	/** @var list<string> */
@@ -14,6 +18,9 @@ class ErrorHandler {
 
 	static public bool $throwErrorException = false;
 
+	/**
+	 * @param Handler $handler
+	 */
 	static public function overrideHandler( Closure $handler ) : void {
 		static::$handler = $handler;
 	}

@@ -17,8 +17,8 @@ trait VetsInput {
 	 * @param list<string> $f_arrVars
 	 */
 	protected function mf_AddVettedInput( array $f_arrSource, array $f_arrVars ) : void {
-		$this->vettedInput += array_map(function($input) {
-			return is_scalar($input) ? trim($input) : array_map(function($input) {
+		$this->vettedInput += array_map(function(mixed $input) {
+			return is_scalar($input) ? trim($input) : array_map(function(mixed $input) {
 				return is_scalar($input) ? trim($input) : $input;
 			}, $input);
 		}, array_intersect_key($f_arrSource, array_flip($f_arrVars)));
