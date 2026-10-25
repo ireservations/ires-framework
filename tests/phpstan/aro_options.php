@@ -36,7 +36,8 @@ $objs = [];
 	aro_options($objs, 'test_model.test_int', 'test_model.test_string'),
 );
 
-\PHPStan\Testing\assertType(
-	'array<float|int|string>',
-	aro_options($objs, 'test_model.foo', 'test_int'), // @phpstan-ignore argument.type
-);
+// aro-dot-property disabled
+// \PHPStan\Testing\assertType(
+// 	'array<float|int|string>',
+// 	aro_options($objs, 'test_model.foo', 'test_int'), // @ phpstan-ignore argument.type
+// );

@@ -29,11 +29,13 @@ $objs = [];
 	'array<string, TestModel2>',
 	aro_key($objs, 'test_string'),
 );
-\PHPStan\Testing\assertType(
-	'array<TestModel2>',
-	aro_key($objs, 'foo'), // @phpstan-ignore argument.type
-);
-\PHPStan\Testing\assertType(
-	'array<TestModel2>',
-	aro_key($objs, 'test_model.test_int'), // @phpstan-ignore argument.type
-);
+
+// aro-dot-property disabled
+// \PHPStan\Testing\assertType(
+// 	'array<TestModel2>',
+// 	aro_key($objs, 'foo'), // @ phpstan-ignore argument.type
+// );
+// \PHPStan\Testing\assertType(
+// 	'array<TestModel2>',
+// 	aro_key($objs, 'test_model.test_int'), // @ phpstan-ignore argument.type
+// );
