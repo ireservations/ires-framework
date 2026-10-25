@@ -83,7 +83,7 @@ class ActionMapper {
 					$options = $hook;
 					$hook = $hook[0];
 					unset($options[0]);
-					$name = $options['name'] ?? null;
+					$name = $options['name'] ?? '';
 					unset($options['name']);
 
 					$hookObject = Hook::withOptions($path, $hook, $options);
@@ -94,7 +94,7 @@ class ActionMapper {
 				}
 				else {
 					$options = array_diff_key($hook, $methodKeys);
-					$name = $options['name'] ?? null;
+					$name = $options['name'] ?? '';
 					unset($options['name']);
 					foreach ( $methods as $method ) {
 						if ( isset($hook[$method]) ) {

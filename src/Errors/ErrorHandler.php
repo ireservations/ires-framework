@@ -61,7 +61,11 @@ class ErrorHandler {
 	}
 
 	static protected function handleErrorDefault( int $severity, string $error, string $file = '', int $line = 0 ) : void {
-		$file = str_replace('\\', '/', substr($file, strlen(SCRIPT_ROOT)+1));
+		$file = str_replace('\\', '/', $file);
+		$root = str_replace('\\', '/', SCRIPT_ROOT) . '/';
+		if ( str_starts_with($file, $root) ) {
+			$file = substr($file, strlen($root));
+		}
 
 		if ( $severity != E_NOTICE || static::failOnNotice($file) ) {
 			static::except($error, $file, $line);

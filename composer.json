@@ -18,7 +18,7 @@
         ]
     },
     "require": {
-        "php": "^8.3",
+        "php": "^8.4",
         "smarty/smarty": "^4.1",
         "symfony/console": "^7.0 || ^6.0",
         "symfony/process": "^7.0 || ^6.0",
@@ -34,5 +34,10 @@
         "files": [
             "src/helpers.php"
         ]
+    },
+    "config": {
+        "platform": {
+            "php": "8.4.8"
+        }
     }
 }

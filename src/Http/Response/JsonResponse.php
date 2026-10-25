@@ -29,7 +29,7 @@ class JsonResponse extends Response {
 	}
 
 	public function printContent() {
-		$json = json_encode($this->data);
+		$json = $this->__toString();
 
 		if ( $this->jsonp ) {
 			echo "{$this->jsonp}({$json})";
@@ -40,7 +40,7 @@ class JsonResponse extends Response {
 	}
 
 	public function __toString() {
-		return json_encode($this->data);
+		return json_encode($this->data, JSON_UNESCAPED_SLASHES);
 	}
 
 }

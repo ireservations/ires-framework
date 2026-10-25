@@ -138,9 +138,12 @@ class MigrateCommand extends Command {
 		$done = $this->getDoneUpdates();
 
 		$done = count($done);
-		$todo = count($this->getNewUpdates());
+		$todo = $this->getNewUpdates();
 
-		echo "$todo migrations TO DO.\n";
+		echo count($todo) . " migrations TO DO.\n";
+		if ( $output->isVerbose() ) {
+			print_r($todo);
+		}
 		echo "$done migrations done.\n";
 
 		return 0;
@@ -203,7 +206,7 @@ class MigrateCommand extends Command {
 		echo "\n";
 
 		if ( !$test ) {
-			echo "#### #### UPDATES ({$this->db->db_name}) #### ####\n\n";
+			printf("#### #### UPDATES (%s) #### ####\n\n", $this->db->db_name);
 		}
 
 		if ( !$this->tableExists() ) {

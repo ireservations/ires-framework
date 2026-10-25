@@ -23,11 +23,12 @@ class ToManyScalar extends ToScalar {
 		$id = $this->getForeignId($this->source, $this->local);
 
 		$columns = $this->key ? "$this->key, $this->target" : $this->target;
+		$targetTable = $this->getTargetTable();
 		$joins = $this->buildJoins();
 		$whereOrder = $this->getWhereOrder([$this->foreign => $id]);
 		$values = $db->fetch_fields("
 			select distinct $columns
-			from {$this->getTargetTable()}
+			from {$targetTable}
 			$joins
 			where $whereOrder
 		");
@@ -48,11 +49,12 @@ class ToManyScalar extends ToScalar {
 		$ids = $this->getForeignIds($objects, $this->local);
 
 		$keyColumn = $this->key ?: '1';
+		$targetTable = $this->getTargetTable();
 		$joins = $this->buildJoins();
 		$whereOrder = $this->getWhereOrder([$this->foreign => $ids]);
 		$links = $db->fetch("
 			select distinct $this->foreign _foreign, $keyColumn _key, $this->target _value
-			from {$this->getTargetTable()}
+			from {$targetTable}
 			$joins
 			where $whereOrder
 		");
