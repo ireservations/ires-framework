@@ -25,7 +25,7 @@ class ToOne extends ActiveRecordRelationship {
 		$targets = $this->keyByKey($targets, $this->getTargetPk());
 
 		foreach ( $objects as $object ) {
-			$object->setGot($name, $targets[$object->$foreignColumn] ?? null);
+			$object->setGot($name, $targets[$object->$foreignColumn ?? 0] ?? null);
 		}
 
 		count($targets) and $this->loadEagers($targets);
