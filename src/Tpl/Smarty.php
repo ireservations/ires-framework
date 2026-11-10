@@ -3,9 +3,8 @@
 namespace Framework\Tpl;
 
 use App\Services\Http\AppController;
-use Smarty as BaseSmarty;
-use Smarty_Internal_Template;
-use Smarty_Security;
+use Smarty\Smarty as BaseSmarty;
+use Smarty\Template;
 
 class Smarty extends BaseSmarty {
 
@@ -15,25 +14,22 @@ class Smarty extends BaseSmarty {
 		parent::__construct();
 
 		// Overwrite template & compile dirs to our needs
-		$this->compile_dir = PROJECT_RUNTIME . '/tpl_c';
-		$this->template_dir = [PROJECT_SMARTY_TPLS];
+		$this->setCompileDir(PROJECT_RUNTIME . '/tpl_c');
+		$this->setTemplateDir([PROJECT_SMARTY_TPLS]);
 
 		// Overwrite delimiters to our wantings
-		$this->left_delimiter = '<?';
-		$this->right_delimiter = '?>';
+		$this->setLeftDelimiter('<?');
+		$this->setRightDelimiter('?>');
 
 		// Compilation settings
 		$this->compile_check = BaseSmarty::COMPILECHECK_ON; // check filemtime()
 		$this->force_compile = false; // ignore existing compiled
 
 		// Custom plugins
-		$this->plugins_dir = [
-			PROJECT_INC_SMARTY . '/plugins',
-			PROJECT_VENDORS . '/smarty/smarty/libs/plugins',
-		];
+		$this->addPluginDirs([PROJECT_INC_SMARTY . '/plugins']);
 
 		// Route smarty function: {route name='invoices.edit' args=[123]}
-		// $this->registerPlugin('function', 'route', function(array $params, Smarty_Internal_Template $smarty) {
+		// $this->registerPlugin('function', 'route', function(array $params, Template $smarty) {
 		// 	$args = is_array($params['args'] ?? []) ? ($params['args'] ?? []) : [$params['args']];
 		// 	$path = AppController::route($params['name'], ...$args);
 		// 	if ( !empty($params['assign']) ) {
@@ -51,12 +47,21 @@ class Smarty extends BaseSmarty {
 			if ( file_exists($name . $this->_tpl_extension) ) {
 				return $name . $this->_tpl_extension;
 			}
-			return strval($this->template_dir[0]) . $name . $this->_tpl_extension;
+			return strval($this->getTemplateDir(0)) . $name . $this->_tpl_extension;
 		};
 
 		// Errors & debug
 		$this->setErrorReporting(error_reporting() & ~E_NOTICE);
 		$this->muteUndefinedOrNullWarnings();
+	}
+
+	/**
+	 * @param list<string> $dirs
+	 */
+	protected function addPluginDirs( array $dirs ) : void {
+		$extensions = $this->getExtensions();
+		array_unshift($extensions, new PluginsDirExtension($dirs));
+		$this->setExtensions($extensions);
 	}
 
 }
