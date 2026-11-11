@@ -258,7 +258,7 @@ function debug_exit( string $title, mixed $more = '' ) : void {
 
 		if ( $more instanceof Throwable ) {
 			$trace = $more->getTrace();
-			$more = '';
+			$more = $more->getMessage() . "\n";
 		}
 		else {
 			$trace = array_slice(debug_backtrace(), 1);
